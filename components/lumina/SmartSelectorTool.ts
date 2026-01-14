@@ -1,26 +1,22 @@
-
 import { StateNode, TLShapeId } from 'tldraw';
 
 export class SmartSelectorTool extends StateNode {
-  /**
-   * Added fix: Removed 'override' from static member as it's not supported in TS.
-   */
   static id = 'smart-selector';
 
-  /**
-   * Added fix: Removed 'override' keyword and used explicit casting for 'this' to bypass property access errors 
-   * while ensuring the tool functions correctly at runtime.
-   */
   onPointerDown() {
     const editor = (this as any).editor;
     const { inputs } = editor;
+    
+    // Suporte a multi-toque e precisão mobile
+    const point = inputs.currentPagePoint;
     const currentPageShapes = editor.getCurrentPageShapes();
     
-    // 1. Encontrar imagem Lumina sob o cursor
-    const hitShape = currentPageShapes.find((s: any) => {
+    // 1. Encontrar imagem Lumina sob o cursor com margem de erro (hitbox) maior para toque
+    const hitShape = [...currentPageShapes].reverse().find((s: any) => {
       if (s.type !== 'lumina-image') return false;
       const bounds = editor.getShapePageBounds(s.id)!;
-      return bounds.containsPoint(inputs.currentPagePoint);
+      // Adiciona margem de 5px para facilitar seleção no mobile
+      return bounds.expandBy(5).containsPoint(point);
     });
 
     if (hitShape) {
@@ -38,7 +34,7 @@ export class SmartSelectorTool extends StateNode {
     const relX = (inputs.currentPagePoint.x - bounds.minX) / bounds.width;
     const relY = (inputs.currentPagePoint.y - bounds.minY) / bounds.height;
 
-    // Ativar animação de scanning no PixiJS
+    // Feedback Visual Imediato
     editor.updateShape({
       id: shapeId,
       type: 'lumina-image',
@@ -46,9 +42,10 @@ export class SmartSelectorTool extends StateNode {
     } as any);
 
     try {
-      // Comunicação com o hook (Acessado via window para orquestração simples)
       const luminaAI = (window as any).luminaAI;
-      if (!luminaAI) throw new Error("Lumina AI Hook not found");
+      if (!luminaAI || !luminaAI.isReady) {
+        throw new Error("Neural Kernel not initialized for selection.");
+      }
 
       const maskUrl = await luminaAI.segmentAtPoint((shape.props as any).url, relX, relY);
 
@@ -60,12 +57,17 @@ export class SmartSelectorTool extends StateNode {
       
       editor.setSelectedShapes([shapeId]);
     } catch (e) {
-      console.error(e);
+      console.error("SmartSelector Critical Error:", e);
       editor.updateShape({
         id: shapeId,
         type: 'lumina-image',
         props: { ...shape.props, isScanning: false }
       } as any);
+      
+      // Notificação silenciosa se falhar
+      if (typeof window !== 'undefined') {
+          (window as any).alert?.("Falha na segmentação: Certifique-se que o Kernel está ativo.");
+      }
     }
   }
 }
