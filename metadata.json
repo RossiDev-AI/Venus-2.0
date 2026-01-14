@@ -1,0 +1,9 @@
+{
+  "name": " Venus AI - Neural Cinema Studio 2.0",
+  "description": "Next-gen Multi-Agent Image/Video Orchestrator featuring LGN Post-Production and Kinetic DNA Preservation.",
+  "requestFramePermissions": [
+    "geolocation",
+    "camera",
+    "microphone"
+  ]
+}
