@@ -11,9 +11,9 @@ export class LuminaImageShapeUtil extends ShapeUtil<LuminaImageShape> {
 
   getDefaultProps(): any {
     return {
-      w: 400,
-      h: 400,
-      url: 'https://picsum.photos/400/400',
+      w: 800,
+      h: 600,
+      url: 'https://picsum.photos/800/600',
       brightness: 1,
       contrast: 1,
       saturation: 1,
@@ -61,12 +61,15 @@ export class LuminaImageShapeUtil extends ShapeUtil<LuminaImageShape> {
 
         const app = new PIXI.Application();
         const p = (shape as any).props;
+        
+        // Inicialização assíncrona da PIXI v8
         await app.init({
           width: p.w,
           height: p.h,
           backgroundAlpha: 0,
           resolution: window.devicePixelRatio || 1,
           autoDensity: true,
+          antialias: true,
         });
 
         if (!isMounted) {
@@ -92,21 +95,17 @@ export class LuminaImageShapeUtil extends ShapeUtil<LuminaImageShape> {
           app.stage.addChild(sprite);
           spriteRef.current = sprite;
 
+          // Configuração de Filtros
           const colorMatrix = new PIXI.ColorMatrixFilter();
           const blurFilter = new PIXI.BlurFilter();
-          
           sprite.filters = [colorMatrix, blurFilter];
           colorMatrixFilterRef.current = colorMatrix;
           blurFilterRef.current = blurFilter;
 
-          // Check for existing mask
-          if (p.maskUrl) {
-            await applyMask(p.maskUrl);
-          }
-
-          syncFilters();
+          if (p.maskUrl) await applyMask(p.maskUrl);
+          syncProps();
         } catch (error) {
-          console.error('Lumina Pixi Load Error:', error);
+          console.error('Lumina Engine Critical Failure:', error);
         }
       };
 
@@ -114,7 +113,6 @@ export class LuminaImageShapeUtil extends ShapeUtil<LuminaImageShape> {
         const app = pixiAppRef.current;
         const sprite = spriteRef.current;
         if (!app || !sprite) return;
-
         try {
           const maskTexture = await PIXI.Assets.load(maskUrl);
           const maskSprite = new PIXI.Sprite(maskTexture);
@@ -122,16 +120,13 @@ export class LuminaImageShapeUtil extends ShapeUtil<LuminaImageShape> {
           maskSprite.x = sprite.x;
           maskSprite.y = sprite.y;
           maskSprite.scale.set(sprite.scale.x);
-          
           app.stage.addChild(maskSprite);
           sprite.mask = maskSprite;
           maskRef.current = maskSprite;
-        } catch (e) {
-          console.error("Mask Apply Error:", e);
-        }
+        } catch (e) {}
       };
 
-      const syncFilters = () => {
+      const syncProps = () => {
         const cm = colorMatrixFilterRef.current;
         const bf = blurFilterRef.current;
         const p = (shape as any).props;
@@ -141,9 +136,7 @@ export class LuminaImageShapeUtil extends ShapeUtil<LuminaImageShape> {
           cm.contrast(p.contrast, false);
           cm.saturate(p.saturation - 1, true);
         }
-        if (bf) {
-          bf.blur = p.blur;
-        }
+        if (bf) bf.blur = p.blur;
       };
 
       initPixi();
@@ -151,13 +144,14 @@ export class LuminaImageShapeUtil extends ShapeUtil<LuminaImageShape> {
       return () => {
         isMounted = false;
         if (pixiAppRef.current) {
+          // Cleanup rigoroso para evitar memory leaks
           pixiAppRef.current.destroy(true, { children: true, texture: true });
           pixiAppRef.current = null;
         }
       };
     }, []);
 
-    // Sync Props (Resize, Filters, and New Mask)
+    // Sincronização reativa de propriedades (Resize, Filtros e Máscaras)
     useLayoutEffect(() => {
       const app = pixiAppRef.current;
       const sprite = spriteRef.current;
@@ -165,8 +159,6 @@ export class LuminaImageShapeUtil extends ShapeUtil<LuminaImageShape> {
       if (!app || !sprite) return;
 
       const p = (shape as any).props;
-
-      // Handle Resize
       app.renderer.resize(p.w, p.h);
       sprite.x = app.screen.width / 2;
       sprite.y = app.screen.height / 2;
@@ -179,32 +171,11 @@ export class LuminaImageShapeUtil extends ShapeUtil<LuminaImageShape> {
         mask.scale.set(sprite.scale.x);
       }
 
-      // Handle Mask logic (if changed)
-      const loadNewMask = async () => {
-        if (p.maskUrl && (!mask || mask.texture.label !== p.maskUrl)) {
-             try {
-                const tex = await PIXI.Assets.load(p.maskUrl);
-                if (mask) app.stage.removeChild(mask);
-                const newMask = new PIXI.Sprite(tex);
-                newMask.anchor.set(0.5);
-                newMask.x = sprite.x;
-                newMask.y = sprite.y;
-                newMask.scale.set(sprite.scale.x);
-                app.stage.addChild(newMask);
-                sprite.mask = newMask;
-                maskRef.current = newMask;
-             } catch(e){}
-        }
-      };
-      loadNewMask();
-
-      // Filters
       if (colorMatrixFilterRef.current) {
         const cm = colorMatrixFilterRef.current;
         cm.reset();
         cm.brightness(p.brightness, false);
-        const sat = p.saturation;
-        if (sat !== 1) cm.saturate(sat, true);
+        cm.saturate(p.saturation - 1, true);
         const c = p.contrast;
         if (c !== 1) {
             const matrix = cm.matrix;
@@ -213,9 +184,8 @@ export class LuminaImageShapeUtil extends ShapeUtil<LuminaImageShape> {
             matrix[4] += o; matrix[9] += o; matrix[14] += o;
         }
       }
-      if (blurFilterRef.current) {
-        blurFilterRef.current.blur = p.blur;
-      }
+      if (blurFilterRef.current) blurFilterRef.current.blur = p.blur;
+
     }, [currentProps.w, currentProps.h, currentProps.brightness, currentProps.contrast, currentProps.saturation, currentProps.blur, currentProps.maskUrl]);
 
     return (
@@ -227,16 +197,16 @@ export class LuminaImageShapeUtil extends ShapeUtil<LuminaImageShape> {
           pointerEvents: 'none',
           backgroundColor: 'transparent',
           overflow: 'hidden',
-          borderRadius: '12px',
-          boxShadow: currentProps.isProcessingMask ? '0 0 40px rgba(99, 102, 241, 0.5)' : '0 10px 30px rgba(0,0,0,0.5)',
-          transition: 'box-shadow 0.3s ease',
+          borderRadius: '16px',
+          boxShadow: currentProps.isProcessingMask ? '0 0 50px rgba(99, 102, 241, 0.4)' : '0 20px 50px rgba(0,0,0,0.5)',
+          transition: 'box-shadow 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
         }}
       >
         {currentProps.isProcessingMask && (
-          <div className="absolute inset-0 bg-indigo-600/10 backdrop-blur-[2px] flex items-center justify-center">
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-              <span className="text-[7px] font-black text-indigo-400 uppercase tracking-widest">Auto_Magic_Cutout...</span>
+          <div className="absolute inset-0 bg-indigo-600/10 backdrop-blur-[4px] flex items-center justify-center">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin shadow-[0_0_20px_rgba(99,102,241,0.4)]" />
+              <span className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.3em] mono animate-pulse">Neural_Synthesis_Active</span>
             </div>
           </div>
         )}
@@ -246,6 +216,6 @@ export class LuminaImageShapeUtil extends ShapeUtil<LuminaImageShape> {
 
   indicator(shape: LuminaImageShape) {
     const props = (shape as any).props;
-    return <rect width={props.w} height={props.h} />;
+    return <rect width={props.w} height={props.h} rx="16" ry="16" />;
   }
 }
