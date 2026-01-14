@@ -1,6 +1,5 @@
-
 import { create } from 'zustand';
-import { subscribeWithSelector } from 'zustand/middleware';
+import { subscribeWithSelector, persist, createJSONStorage } from 'zustand/middleware';
 import { temporal } from 'zundo';
 import { TLShapeId, TLStoreSnapshot } from 'tldraw';
 import { LuminaPreset } from '../types';
@@ -14,7 +13,7 @@ interface IAJob {
 }
 
 interface VenusState {
-  deviceProfile: DeviceProfile | null;
+  deviceProfile: null | DeviceProfile;
   isPaused: boolean;
   vaultSyncStatus: 'idle' | 'syncing' | 'error';
   lastStableSnapshot: TLStoreSnapshot | null;
@@ -22,6 +21,8 @@ interface VenusState {
   selectedShapeId: TLShapeId | null;
   isSynthesizing: boolean;
   jobQueue: IAJob[];
+  sceneTextContext: string[];
+  sessionHistory: string[];
   
   setDeviceProfile: (profile: DeviceProfile) => void;
   setPaused: (val: boolean) => void;
@@ -32,38 +33,72 @@ interface VenusState {
   setSynthesizing: (val: boolean) => void;
   addJob: (job: IAJob) => void;
   updateJob: (id: string, updates: Partial<IAJob>) => void;
+  setSceneTextContext: (words: string[]) => void;
+  addSessionEvent: (event: string) => void;
+  resetStore: () => void;
 }
 
-export const useVenusStore = create<VenusState>()(
-  temporal(
-    subscribeWithSelector((set) => ({
-      deviceProfile: null,
-      isPaused: false,
-      vaultSyncStatus: 'idle',
-      lastStableSnapshot: null,
-      activePreset: null,
-      selectedShapeId: null,
-      isSynthesizing: false,
-      jobQueue: [],
+const INITIAL_STATE = {
+  deviceProfile: null,
+  isPaused: false,
+  vaultSyncStatus: 'idle' as const,
+  lastStableSnapshot: null,
+  activePreset: null,
+  selectedShapeId: null,
+  isSynthesizing: false,
+  jobQueue: [],
+  sceneTextContext: [],
+  sessionHistory: [],
+};
 
-      setDeviceProfile: (deviceProfile) => set({ deviceProfile }),
-      setPaused: (isPaused) => set({ isPaused }),
-      setVaultSyncStatus: (status) => set({ vaultSyncStatus: status }),
-      setLastStableSnapshot: (snapshot) => set({ lastStableSnapshot: snapshot }),
-      setActivePreset: (activePreset) => set({ activePreset }),
-      setSelectedShapeId: (selectedShapeId) => set({ selectedShapeId }),
-      setSynthesizing: (isSynthesizing) => set({ isSynthesizing }),
-      addJob: (job) => set((state) => ({ jobQueue: [...state.jobQueue, job] })),
-      updateJob: (id, updates) => set((state) => ({
-        jobQueue: state.jobQueue.map(j => j.id === id ? { ...j, ...updates } : j)
+export const useVenusStore = create<VenusState>()(
+  persist(
+    temporal(
+      subscribeWithSelector((set) => ({
+        ...INITIAL_STATE,
+
+        setDeviceProfile: (deviceProfile) => set({ deviceProfile }),
+        setPaused: (isPaused) => set({ isPaused }),
+        setVaultSyncStatus: (status) => set({ vaultSyncStatus: status }),
+        setLastStableSnapshot: (snapshot) => set({ lastStableSnapshot: snapshot }),
+        setActivePreset: (activePreset) => set({ activePreset }),
+        setSelectedShapeId: (selectedShapeId) => set({ selectedShapeId }),
+        setSynthesizing: (isSynthesizing) => set({ isSynthesizing }),
+        addJob: (job) => set((state) => ({ jobQueue: [...state.jobQueue, job] })),
+        updateJob: (id, updates) => set((state) => ({
+          jobQueue: state.jobQueue.map(j => j.id === id ? { ...j, ...updates } : j)
+        })),
+        setSceneTextContext: (sceneTextContext) => set({ sceneTextContext }),
+        addSessionEvent: (event) => set((state) => ({ 
+          sessionHistory: [event, ...state.sessionHistory].slice(0, 50) 
+        })),
+        resetStore: () => set(INITIAL_STATE),
       })),
-    })),
+      {
+        partialize: (state) => ({
+          activePreset: state.activePreset,
+          selectedShapeId: state.selectedShapeId,
+          sceneTextContext: state.sceneTextContext
+        }),
+        limit: 100
+      }
+    ),
     {
+      name: 'v-nus-industrial-v20',
+      storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         activePreset: state.activePreset,
-        selectedShapeId: state.selectedShapeId,
+        deviceProfile: state.deviceProfile,
+        sessionHistory: state.sessionHistory,
+        sceneTextContext: state.sceneTextContext
       }),
-      limit: 50
+      onRehydrateStorage: (state) => {
+        console.log('Kernel: Rehidratando DNA da sessão...');
+        return (rehydratedState, error) => {
+          if (error) console.error('Kernel: Falha na persistência', error);
+          else console.log('Kernel: DNA da sessão pronto.');
+        };
+      }
     }
   )
 );

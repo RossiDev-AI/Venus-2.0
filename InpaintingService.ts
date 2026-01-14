@@ -1,9 +1,10 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { AppSettings, LuminaImageProps, LuminaPreset } from "./types";
 
-const getAI = (settings?: AppSettings) => {
-  const key = settings?.googleApiKey || (process.env.API_KEY as string);
-  return new GoogleGenAI({ apiKey: key });
+// Added fix: API key must be obtained exclusively from process.env.API_KEY per guidelines
+const getAI = () => {
+  return new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 };
 
 const getGradingStyleDescription = (props: LuminaImageProps): string => {
@@ -24,20 +25,26 @@ export interface InpaintJob {
     prompt: string;
     props: LuminaImageProps;
     settings?: AppSettings;
-    activePreset?: LuminaPreset; // Novo: Contexto de preset
+    activePreset?: LuminaPreset; 
+    ocrContextKeywords?: string[]; // Novo: Palavras-chave do OCR
 }
 
 export async function executeStyleAwareInpaint(job: InpaintJob): Promise<string> {
-    const ai = getAI(job.settings);
+    const ai = getAI();
     const styleContext = getGradingStyleDescription(job.props);
     
-    // Concatena o prompt do usuário com o sufixo do preset
+    // Injeção de Contexto OCR
+    const ocrMetadata = job.ocrContextKeywords && job.ocrContextKeywords.length > 0 
+        ? ` Detected elements in scene: ${job.ocrContextKeywords.join(', ')}.` 
+        : "";
+
     const presetSuffix = job.activePreset?.promptSuffix ? ` Style directives: ${job.activePreset.promptSuffix}.` : "";
-    const finalPrompt = `${job.prompt}.${presetSuffix} ${styleContext} seamlessly blend the new content into the existing frame.`;
+    const finalPrompt = `${job.prompt}.${presetSuffix}${ocrMetadata} ${styleContext} seamlessly blend the new content into the existing frame.`;
 
     const cleanBase = job.image.split(',')[1] || job.image;
     const cleanMask = job.mask.split(',')[1] || job.mask;
 
+    // Added fix: accessing .text property on response object (not text()) and following generation format
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image', 
         contents: {

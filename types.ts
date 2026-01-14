@@ -54,11 +54,11 @@ export interface LuminaImageProps {
   parallaxIntensity: number;
   showDepthPreview: boolean;
   isForegroundOverlay: boolean;
-  depthDisplacement: number; // Força da distorção óptica Z
+  depthDisplacement: number; 
   
   // Content Awareness
   smartCropEnabled: boolean;
-  subjectFocus?: { x: number, y: number, width: number, height: number }; // Retornado pelo SmartCrop
+  subjectFocus?: { x: number, y: number, width: number, height: number }; 
   
   // Grading 2.0
   exposure: number;
@@ -72,15 +72,20 @@ export interface LuminaImageProps {
   
   // Scopes Signal Data
   histogramData?: number[];
+
+  // Audio Reaction
+  audioPulsingEnabled?: boolean;
+  audioPulsingStrength?: number;
 }
 
 export interface LuminaImageShape extends TLBaseShape<'lumina-image', LuminaImageProps> {}
 
 export interface AppSettings {
-  googleApiKey: string;
+  // Added fix: Removed googleApiKey to follow Google GenAI guidelines (must use process.env.API_KEY exclusively)
   pexelsApiKey: string;
   unsplashAccessKey: string;
   pixabayApiKey: string;
+  giphyApiKey?: string;
   currentSessionId?: string;
 }
 
@@ -92,7 +97,7 @@ export interface StudioSession {
   thumbnail?: string;
 }
 
-export type VaultDomain = 'X' | 'Y' | 'Z' | 'L';
+export type VaultDomain = 'X' | 'Y' | 'Z' | 'L' | 'A'; // A for Audio
 
 export interface VaultItem {
   id: string;
@@ -112,6 +117,8 @@ export interface VaultItem {
   isFavorite: boolean;
   vaultDomain: VaultDomain;
   grading?: LatentGrading;
+  videoUrl?: string; 
+  audioUrl?: string; // Para gravações ou trilhas
 }
 
 export interface AgentStatus {
@@ -121,33 +128,6 @@ export interface AgentStatus {
   timestamp: number;
   department?: string;
   flow_to?: AgentType;
-}
-
-export type WarpMethod = 'affine' | 'thin_plate' | 'deformation';
-
-export interface CategorizedDNA {
-  character: string;
-  environment: string;
-  pose: string;
-  technical_tags: string[];
-  spatial_metadata: {
-    camera_angle: string;
-  };
-  aesthetic_dna: {
-    lighting_setup: string;
-  };
-}
-
-export interface PoseData {
-  imageUrl: string;
-  strength: number;
-  symmetry_strength?: number;
-  rigid_integrity?: number;
-  preserveIdentity: boolean;
-  enabled: boolean;
-  warpMethod: WarpMethod;
-  dna?: CategorizedDNA;
-  technicalDescription?: string;
 }
 
 export interface LatentParams {
@@ -174,7 +154,7 @@ export interface LatentParams {
   vault_domain?: VaultDomain;
   active_slots?: Partial<Record<VaultDomain, string | null>>;
   processing_speed?: ProcessingSpeed;
-  pose_control?: PoseData;
+  pose_control?: any;
   dna_type?: string;
 }
 
@@ -187,18 +167,34 @@ export interface AgentAuthority {
 
 export type ProcessingSpeed = 'Fast' | 'Balanced' | 'Deliberate' | 'Debug';
 
+export interface CinemaGrading {
+  lift: { r: number, g: number, b: number };
+  gamma: { r: number, g: number, b: number };
+  gain: { r: number, g: number, b: number };
+  temperature: number;
+  tint: number;
+  lutUrl?: string;
+  bokehIntensity?: number;
+  faceCenter?: { x: number, y: number };
+  bloomIntensity?: number;
+  grainStrength?: number;
+  swatches?: string[]; 
+  ocrContext?: string; 
+}
+
 export interface TimelineBeat {
   id: string;
   timestamp: number;
   duration: number;
   assetUrl: string | null;
   caption: string;
-  assetType: 'IMAGE' | 'VIDEO' | 'UPLOAD';
+  assetType: 'IMAGE' | 'VIDEO' | 'UPLOAD' | 'GIF';
   scoutQuery?: string;
   sourceUrl?: string;
   manualSourceUrl?: string;
   yOffset?: number; 
   sourceLink?: string; 
+  grading?: CinemaGrading;
 }
 
 export interface CinemaProject {
@@ -334,14 +330,50 @@ export interface FusionManifest {
   protectionStrength: number;
 }
 
+// Added fix: Exported members required by various components
+export interface CategorizedDNA {
+  character: string;
+  environment: string;
+  pose: string;
+  technical_tags: string[];
+  spatial_metadata: { camera_angle: string };
+  aesthetic_dna: { lighting_setup: string };
+}
+
+export type WarpMethod = 'affine' | 'thin_plate' | 'deformation';
+
+export interface PoseData {
+  imageUrl: string;
+  strength: number;
+  symmetry_strength?: number;
+  rigid_integrity?: number;
+  preserveIdentity?: boolean;
+  enabled?: boolean;
+  warpMethod?: WarpMethod;
+  dna?: CategorizedDNA;
+  technicalDescription?: string;
+}
+
 export interface ScoutCandidate {
   id: string;
   title: string;
   source_layer: string;
-  quality_metrics: { technical: number; aesthetic: number };
+  quality_metrics: {
+    technical: number;
+    aesthetic: number;
+  };
   composite_score: number;
-  votes: Array<{ agent: string; score: number; critique: string }>;
-  dna_preview: Partial<LatentParams>;
+  votes: Array<{
+    agent: string;
+    score: number;
+    critique: string;
+  }>;
+  dna_preview: {
+    z_anatomy?: number;
+    z_structure?: number;
+    z_lighting?: number;
+    z_texture?: number;
+  };
 }
 
 export interface ScoutData {
@@ -349,6 +381,14 @@ export interface ScoutData {
   search_stats: { premium_hits: number; internal_hits: number };
   winner_id: string;
   consensus_report: string;
+}
+
+export interface PoseSkeleton {
+  keypoints: Array<{
+    name: string;
+    position: [number, number];
+    confidence: number;
+  }>;
 }
 
 export interface DeliberationStep {
@@ -364,8 +404,4 @@ export interface VisualAnchor {
   type: string;
   position: { x: number; y: number };
   metadata: any;
-}
-
-export interface PoseSkeleton {
-  keypoints: Array<{ name: string; position: [number, number]; confidence: number }>;
 }

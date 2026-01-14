@@ -1,10 +1,12 @@
 
-import React, { useLayoutEffect, useRef, useEffect } from 'react';
+import React, { useLayoutEffect, useRef, useEffect, useState } from 'react';
 import { ShapeUtil, HTMLContainer, TLOnResizeHandler } from 'tldraw';
 import * as PIXI from 'pixi.js';
+import { Assets } from 'pixi.js';
+import { GIF } from '@pixi/gif';
 import { LuminaImageShape } from '../../types';
 import { LuminaShaderEngine } from './LuminaShaderEngine';
-import { useVenusStore } from '../../store/useVenusStore';
+import { Loader2, Zap } from 'lucide-react';
 
 export class LuminaImageShapeUtil extends ShapeUtil<LuminaImageShape> {
   static type = 'lumina-image' as const;
@@ -17,6 +19,7 @@ export class LuminaImageShapeUtil extends ShapeUtil<LuminaImageShape> {
       w: 800, h: 600, url: '',
       depthMapUrl: '', depthThreshold: 0.5, parallaxIntensity: 0.03,
       depthDisplacement: 0.05, smartCropEnabled: true,
+      isScanning: false, assetType: 'IMAGE',
       exposure: 0, brightness: 1, contrast: 1, saturation: 1
     };
   }
@@ -25,85 +28,76 @@ export class LuminaImageShapeUtil extends ShapeUtil<LuminaImageShape> {
     const containerRef = useRef<HTMLDivElement>(null);
     const pixiAppRef = useRef<PIXI.Application | null>(null);
     const mainSpriteRef = useRef<PIXI.Sprite | null>(null);
-    const depthTextureRef = useRef<PIXI.Texture | null>(null);
     const currentProps = (shape as any).props;
-
-    useEffect(() => {
-        const handleMove = (e: MouseEvent) => {
-            const x = (e.clientX / window.innerWidth - 0.5) * 0.1;
-            const y = (e.clientY / window.innerHeight - 0.5) * 0.1;
-            LuminaShaderEngine.updateOffset(x, y);
-        };
-        window.addEventListener('mousemove', handleMove);
-        return () => window.removeEventListener('mousemove', handleMove);
-    }, []);
 
     useLayoutEffect(() => {
       let isMounted = true;
       const init = async () => {
-        if (!containerRef.current) return;
+        if (!containerRef.current || !currentProps.url) return;
+        
         const app = new PIXI.Application();
         await app.init({ width: currentProps.w, height: currentProps.h, backgroundAlpha: 0 });
-        if (!isMounted) return;
+        if (!isMounted) { app.destroy(true); return; }
+        
         pixiAppRef.current = app;
         containerRef.current.appendChild(app.canvas);
 
-        const tex = await PIXI.Assets.load(currentProps.url);
-        const sprite = new PIXI.Sprite(tex);
-        sprite.anchor.set(0.5);
-        sprite.x = app.screen.width / 2;
-        sprite.y = app.screen.height / 2;
+        let displayObject: PIXI.Sprite | GIF;
+
+        if (currentProps.assetType === 'GIF') {
+            displayObject = await Assets.load({
+                src: currentProps.url,
+                loadParser: 'loadGif'
+            });
+        } else {
+            const tex = await Assets.load(currentProps.url);
+            displayObject = new PIXI.Sprite(tex);
+        }
+
+        displayObject.anchor.set(0.5);
+        displayObject.x = app.screen.width / 2;
+        displayObject.y = app.screen.height / 2;
         
-        // Lógica de Smart Crop no preenchimento do sprite
-        const ratio = Math.max(app.screen.width / tex.width, app.screen.height / tex.height);
-        sprite.scale.set(ratio);
+        const ratio = Math.max(app.screen.width / (displayObject as any).width, app.screen.height / (displayObject as any).height);
+        displayObject.scale.set(ratio);
         
         if (currentProps.subjectFocus) {
-            sprite.x = app.screen.width / 2 - (currentProps.subjectFocus.x - 0.5) * sprite.width;
-            sprite.y = app.screen.height / 2 - (currentProps.subjectFocus.y - 0.5) * sprite.height;
+            displayObject.x = app.screen.width / 2 - (currentProps.subjectFocus.x - 0.5) * (displayObject as any).width;
+            displayObject.y = app.screen.height / 2 - (currentProps.subjectFocus.y - 0.5) * (displayObject as any).height;
         }
 
-        app.stage.addChild(sprite);
-        mainSpriteRef.current = sprite;
+        app.stage.addChild(displayObject);
+        mainSpriteRef.current = displayObject as PIXI.Sprite;
 
-        if (currentProps.depthMapUrl) {
-            depthTextureRef.current = await PIXI.Assets.load(currentProps.depthMapUrl);
-        }
-        LuminaShaderEngine.apply(sprite, currentProps, depthTextureRef.current);
+        await LuminaShaderEngine.apply(displayObject as PIXI.Sprite, currentProps, null);
       };
+
       init();
+
       return () => { 
         isMounted = false; 
         if (pixiAppRef.current) pixiAppRef.current.destroy(true, { children: true, texture: true });
       };
-    }, [currentProps.w, currentProps.h, currentProps.subjectFocus]);
+    }, [currentProps.w, currentProps.h, currentProps.url, currentProps.subjectFocus]);
 
     return (
-      <HTMLContainer ref={containerRef} style={{ width: currentProps.w, height: currentProps.h, pointerEvents: 'none', overflow: 'hidden', borderRadius: '24px' }} />
+      <div className="relative w-full h-full">
+        <HTMLContainer ref={containerRef} style={{ width: currentProps.w, height: currentProps.h, pointerEvents: 'none', overflow: 'hidden', borderRadius: '24px', opacity: currentProps.isScanning ? 0.3 : 1, transition: 'opacity 0.5s' }} />
+        
+        {currentProps.isScanning && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-indigo-600/10 backdrop-blur-sm rounded-[24px] border-2 border-indigo-500/40 animate-pulse">
+                <div className="relative">
+                    <Loader2 size={32} className="text-indigo-400 animate-spin" />
+                    <Zap size={14} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white" />
+                </div>
+                <span className="mt-3 text-[8px] font-black text-indigo-400 uppercase tracking-widest">Neural Optimizing...</span>
+            </div>
+        )}
+      </div>
     );
   }
 
-  onResize: TLOnResizeHandler<LuminaImageShape> = (shape, info) => {
-    const newW = info.initialBounds.width * info.scaleX;
-    const newH = info.initialBounds.height * info.scaleY;
-    
-    // Added fix: Used type casting to access 'props' and 'editor' to resolve property access errors.
-    const shapeAny = shape as any;
-    if (shapeAny.props.smartCropEnabled) {
-        const ai = (window as any).luminaAI;
-        ai.analyzeSubject(shapeAny.props.url, newW, newH).then((crop: any) => {
-            (this as any).editor.updateShape({ 
-                id: shape.id, 
-                props: { subjectFocus: { x: crop.x / shapeAny.props.w, y: crop.y / shapeAny.props.h } } 
-            } as any);
-        });
-    }
-
-    return { props: { w: newW, h: newH } };
-  };
-
   getBounds(shape: LuminaImageShape) {
-    // Added fix: Used type casting to access 'props' on LuminaImageShape.
     const props = (shape as any).props;
     return { minX: 0, minY: 0, maxX: props.w, maxY: props.h, width: props.w, height: props.h };
   }

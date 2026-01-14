@@ -1,9 +1,10 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { AppSettings } from "./types";
 
-const getAI = (settings?: AppSettings) => {
-  const key = settings?.googleApiKey || (process.env.API_KEY as string);
-  return new GoogleGenAI({ apiKey: key });
+// Added fix: API key must be obtained exclusively from process.env.API_KEY per guidelines
+const getAI = () => {
+  return new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 };
 
 export interface InpaintParams {
@@ -19,7 +20,7 @@ export async function executeGenerativeInpaint({
   prompt,
   settings,
 }: InpaintParams): Promise<string> {
-  const ai = getAI(settings);
+  const ai = getAI();
 
   // Clean base64 strings
   const cleanBase = baseImageBase64.split(',')[1] || baseImageBase64;

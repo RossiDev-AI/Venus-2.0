@@ -1,20 +1,28 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# V-nus 2.0 | Latent Cinema Studio
+**Industrial Multi-Agent Suite for Kinetic Synthesis**
 
-# Run and deploy your AI Studio app
+V-nus 2.0 é um orquestrador cinematográfico de nova geração, projetado para preservação de DNA cinético e síntese documental via orquestração de múltiplos agentes.
 
-This contains everything you need to run your app locally.
+## 🚀 Novidades do Core Industrial V20.0 (Comlink & High Performance)
 
-View your app in AI Studio: https://ai.studio/apps/drive/1KUvhQik0ZhwR5K1LRQ0bcMJiMXunXyWe
+Esta atualização foca na robustez da comunicação neural e na imersão sensorial da UI.
 
-## Run Locally
+### 1. Arquitetura de IA Refatorada (Comlink Bridge)
+Substituição do sistema de mensagens manual por uma ponte **Comlink** tipada.
+- **Benefício**: Chamadas aos modelos Transformers.js (SAM, Depth, OCR) agora são métodos assíncronos diretos e tipados no hook `useLuminaAI`.
+- **Segurança**: Isolamento total de threads (Web Worker) garantindo 60fps constantes no renderizador PixiJS.
 
-**Prerequisites:**  Node.js
+### 2. Persistência Deep-State
+Integração profunda de **Zustand Persistence**.
+- **Resiliência**: O estúdio agora sobrevive a recarregamentos acidentais, restaurando presets ativos, histórico de sessões e o contexto OCR da cena atual.
 
+### 3. Feedback Sensorial Lottie
+Implementação de feedbacks visuais baseados em animações vetoriais via `NeuralLottie`.
+- **Feedback por Agente**: Animações específicas para SEQUENCING, SCANNING e RENDERING injetadas via HOC.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### 4. OCR & Scene Awareness
+Capacidade de reconhecimento de texto integrada ao Worker.
+- **Contexto**: O sistema extrai metadados visuais (keywords) da cena para alimentar a inteligência coletiva dos agentes durante a síntese.
+
+---
+*V-nus 2.0 - Engenharia de Linguagem Cinematográfica Latente.*

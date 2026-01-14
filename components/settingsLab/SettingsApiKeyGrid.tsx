@@ -12,15 +12,7 @@ interface SettingsApiKeyGridProps {
 const SettingsApiKeyGrid: React.FC<SettingsApiKeyGridProps> = ({ settings, onUpdate, saveIndicator }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <SettingsApiKeyItem 
-        label="Google / Gemini API" 
-        apiKey="googleApiKey" 
-        value={settings.googleApiKey}
-        placeholder="AI Studio API Key..."
-        onUpdate={onUpdate}
-        isRecentUpdate={saveIndicator === 'googleApiKey'}
-        icon={<div className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />}
-      />
+      {/* Added fix: Removed Google API key input to follow instructions: do not ask user for API key or provide UI for it. */}
       <SettingsApiKeyItem 
         label="Pexels API" 
         apiKey="pexelsApiKey" 

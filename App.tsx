@@ -1,23 +1,31 @@
-
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Header from './components/layout/Header';
 import Navigation from './components/layout/Navigation';
-import Workspace from './components/workspace/Workspace';
-import Vault from './components/vault/Vault';
-import ManualNode from './components/manual/ManualNode';
-import FusionLab from './components/fusion/FusionLab';
-import CinemaLab from './components/cinema/CinemaLab';
-import CreationLab from './components/creation/CreationLab';
-import GradingLab from './components/grading/GradingLab';
-import SettingsLab from './components/settings/SettingsLab';
-import DocsLab from './components/docs/DocsLab';
-import { VaultItem, AgentStatus, LatentParams, LatentGrading, VisualAnchor, CinemaProject, AppSettings } from './types';
+import NeuralCursorOverlay from './components/layout/NeuralCursorOverlay';
+import NeuralAgentCoach from './components/ai/NeuralAgentCoach';
+import { withNeuralFeedback } from './components/shared/NeuralOverlayHOC';
+import { VaultItem, AgentStatus, LatentParams, LatentGrading, CinemaProject, AppSettings } from './types';
 import { getAllNodes, saveNode, deleteNode } from './dbService';
 import { useVenusStore } from './store/useVenusStore';
 import { getDeviceProfile } from './services/DeviceProfiler';
 
+const CreationLab = lazy(() => import('./components/creation/CreationLab'));
+const Workspace = lazy(() => import('./components/workspace/Workspace'));
+const Vault = lazy(() => import('./components/vault/Vault'));
+const GradingLab = lazy(() => import('./components/grading/GradingLab'));
+const CinemaLab = lazy(() => import('./components/cinema/CinemaLab'));
+const FusionLab = lazy(() => import('./components/fusion/FusionLab'));
+const ManualNode = lazy(() => import('./components/manual/ManualNode'));
 const LuminaStudio = lazy(() => import('./components/lumina/LuminaStudio'));
+const SettingsLab = lazy(() => import('./components/settings/SettingsLab'));
+const DocsLab = lazy(() => import('./components/docs/DocsLab'));
+
+// Labs envoltos em Feedback Neural (HOC) - Não altera a lógica original
+const FeedbackCinemaLab = withNeuralFeedback(CinemaLab, 'EXPORT_RENDER');
+const FeedbackFusionLab = withNeuralFeedback(FusionLab, 'REACTOR_ACTIVE');
+const FeedbackGradingLab = withNeuralFeedback(GradingLab, 'SIGNAL_PULSE');
+const FeedbackCreationLab = withNeuralFeedback(CreationLab, 'SEQUENCING');
 
 const DEFAULT_PARAMS: LatentParams = {
   z_anatomy: 1.0,
@@ -35,56 +43,22 @@ const App: React.FC = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'creation' | 'workspace' | 'vault' | 'manual' | 'fusion' | 'cinema' | 'grading' | 'settings' | 'docs' | 'lumina'>('creation');
   
-  const { vaultSyncStatus, setVaultSyncStatus, setDeviceProfile, setPaused, deviceProfile } = useVenusStore();
+  const { vaultSyncStatus, setVaultSyncStatus, setDeviceProfile, deviceProfile } = useVenusStore();
 
   const [appSettings, setAppSettings] = useState<AppSettings>(() => {
     const saved = localStorage.getItem('venus_app_settings');
-    return saved ? JSON.parse(saved) : { googleApiKey: '', pexelsApiKey: '', unsplashAccessKey: '', pixabayApiKey: '' };
+    return saved ? JSON.parse(saved) : { pexelsApiKey: '', unsplashAccessKey: '', pixabayApiKey: '' };
   });
 
-  // Device & Lifecycle Management
   useEffect(() => {
     getDeviceProfile().then(setDeviceProfile);
-
-    const handleVisibility = () => {
-      setPaused(document.hidden);
-    };
-
-    const handleGesture = (e: TouchEvent) => {
-      if (e.touches.length > 1) e.preventDefault(); // Bloqueia zoom nativo do browser no canvas
-    };
-
-    document.addEventListener('visibilitychange', handleVisibility);
-    document.addEventListener('touchstart', handleGesture, { passive: false });
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibility);
-      document.removeEventListener('touchstart', handleGesture);
-    };
   }, []);
 
-  // Global Recovery & Error Handling
-  useEffect(() => {
-    const handleError = (e: PromiseRejectionEvent | ErrorEvent) => {
-        console.error("Kernel Panic Detected. Initiating Recovery...", e);
-        setVaultSyncStatus('error');
-    };
-    window.addEventListener('error', handleError);
-    window.addEventListener('unhandledrejection', handleError);
-    return () => {
-      window.removeEventListener('error', handleError);
-      window.removeEventListener('unhandledrejection', handleError);
-    };
-  }, []);
-
-  // Query Engine para o Vault
-  const { data: vaultItems = [], isLoading: isVaultLoading } = useQuery({
+  const { data: vaultItems = [] } = useQuery({
     queryKey: ['vault-items'],
     queryFn: async () => {
         setVaultSyncStatus('syncing');
-        const res = await getAllNodes();
-        setVaultSyncStatus('idle');
-        return res;
+        return await getAllNodes();
     },
   });
 
@@ -100,10 +74,7 @@ const App: React.FC = () => {
 
   const [studioPrompt, setStudioPrompt] = useState('');
   const [studioCurrentImage, setStudioCurrentImage] = useState<string | null>(null);
-  const [studioOriginalSource, setStudioOriginalSource] = useState<string | null>(null);
-  const [studioLogs, setStudioLogs] = useState<AgentStatus[]>([]);
   const [studioParams, setStudioParams] = useState<LatentParams>({ ...DEFAULT_PARAMS });
-  const [studioGrading, setStudioGrading] = useState<LatentGrading | undefined>(undefined);
 
   const [cinemaProject, setCinemaProject] = useState<CinemaProject>({
     id: crypto.randomUUID(),
@@ -115,66 +86,35 @@ const App: React.FC = () => {
     subtitleSettings: { fontSize: 16, fontColor: '#ffffff', backgroundColor: '#000000', fontFamily: 'Inter', bgOpacity: 0.7, textAlign: 'center', paddingHMult: 1.2, paddingVMult: 1.2, radiusMult: 0.8, marginMult: 2.5 }
   });
 
-  useEffect(() => {
-    localStorage.setItem('venus_app_settings', JSON.stringify(appSettings));
-  }, [appSettings]);
-
   return (
     <div className={`min-h-screen flex flex-col bg-[#050505] text-zinc-100 overflow-hidden relative ${deviceProfile?.isTouch ? 'touch-none' : ''}`}>
+      <NeuralCursorOverlay />
+      <NeuralAgentCoach />
+      
       <Header activeTab={activeTab} setActiveTab={setActiveTab} />
       <Navigation activeTab={activeTab} setActiveTab={setActiveTab} vaultCount={vaultItems.length} />
 
       <main className="flex-1 overflow-auto bg-[#020202] relative custom-scrollbar">
-        {vaultSyncStatus === 'error' && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] px-6 py-2 bg-red-600 text-white rounded-full text-[10px] font-black uppercase animate-in slide-in-from-top-4">
-                Recovery Active: Stable Snapshot Available
-            </div>
-        )}
-
-        {isVaultLoading ? (
-          <div className="flex h-full items-center justify-center">
-             <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+        <Suspense fallback={
+          <div className="flex flex-col h-full items-center justify-center space-y-6">
+             <div className="w-20 h-20 relative">
+               <div className="absolute inset-0 border-4 border-indigo-600/10 rounded-full" />
+               <div className="absolute inset-0 border-4 border-t-indigo-600 rounded-full animate-spin" />
+             </div>
+             <p className="text-[10px] mono text-zinc-500 uppercase tracking-[0.5em] animate-pulse">Neural_Module_Syncing...</p>
           </div>
-        ) : (
-          <Suspense fallback={<div className="p-8 text-center text-zinc-500 text-[10px] mono animate-pulse">LATENT_BUFFER_LOADING...</div>}>
-            <div className="pb-28 lg:pb-0 h-full">
-              {activeTab === 'creation' && (
-                <CreationLab 
-                  onResult={(img, par, pr, lk, gr, vi) => {
-                    setStudioCurrentImage(img); setStudioParams(par); setStudioPrompt(pr); setStudioGrading(gr);
-                    setActiveTab('workspace');
-                  }}
-                  params={studioParams} setParams={setStudioParams} onReset={() => {}} vault={vaultItems} settings={appSettings}
-                />
-              )}
-              {activeTab === 'workspace' && (
-                <Workspace 
-                  onSave={saveMutation.mutateAsync} vault={vaultItems} prompt={studioPrompt} setPrompt={setStudioPrompt}
-                  currentImage={studioCurrentImage} setCurrentImage={setStudioCurrentImage} 
-                  originalSource={studioOriginalSource} setOriginalSource={setStudioOriginalSource}
-                  logs={studioLogs} setLogs={setStudioLogs} params={studioParams} setParams={setStudioParams}
-                  onReloadApp={() => {}} grading={studioGrading} settings={appSettings}
-                />
-              )}
-              {activeTab === 'vault' && (
-                <Vault 
-                  items={vaultItems} 
-                  onDelete={deleteMutation.mutate} 
-                  onRefresh={async () => { await queryClient.invalidateQueries({ queryKey: ['vault-items'] }) }} 
-                  onReload={(i) => { setStudioCurrentImage(i.imageUrl); setStudioPrompt(i.prompt); setActiveTab('workspace'); }}
-                  onClearAll={() => {}} 
-                />
-              )}
-              {activeTab === 'grading' && <GradingLab vault={vaultItems} onSave={saveMutation.mutateAsync} />}
-              {activeTab === 'cinema' && <CinemaLab vault={vaultItems} onSave={saveMutation.mutateAsync} project={cinemaProject} setProject={setCinemaProject} script="" setScript={() => {}} title="" setTitle={() => {}} credits="" setCredits={() => {}} logs={[]} setLogs={() => {}} activeBeatIndex={0} setActiveBeatIndex={() => {}} onReset={() => {}} settings={appSettings} />}
-              {activeTab === 'fusion' && <FusionLab vault={vaultItems} onResult={() => {}} settings={appSettings} />}
-              {activeTab === 'manual' && <ManualNode onSave={saveMutation.mutateAsync} settings={appSettings} />}
-              {activeTab === 'lumina' && <LuminaStudio settings={appSettings} />}
-              {activeTab === 'docs' && <DocsLab />}
-              {activeTab === 'settings' && <SettingsLab settings={appSettings} setSettings={setAppSettings} />}
-            </div>
-          </Suspense>
-        )}
+        }>
+            {activeTab === 'creation' && <FeedbackCreationLab onResult={(img, par, pr) => { setStudioCurrentImage(img); setStudioParams(par); setStudioPrompt(pr); setActiveTab('workspace'); }} params={studioParams} setParams={setStudioParams} onReset={() => {}} vault={vaultItems} settings={appSettings} />}
+            {activeTab === 'workspace' && <Workspace onSave={saveMutation.mutateAsync} vault={vaultItems} prompt={studioPrompt} setPrompt={setStudioPrompt} currentImage={studioCurrentImage} setCurrentImage={setStudioCurrentImage} originalSource={null} setOriginalSource={() => {}} logs={[]} setLogs={() => {}} params={studioParams} setParams={setStudioParams} onReloadApp={() => {}} settings={appSettings} />}
+            {activeTab === 'vault' && <Vault items={vaultItems} onDelete={deleteMutation.mutate} onRefresh={async () => { await queryClient.invalidateQueries({ queryKey: ['vault-items'] }) }} onReload={(i) => { setStudioCurrentImage(i.imageUrl); setStudioPrompt(i.prompt); setActiveTab('workspace'); }} onClearAll={() => {}} />}
+            {activeTab === 'grading' && <FeedbackGradingLab vault={vaultItems} onSave={saveMutation.mutateAsync} />}
+            {activeTab === 'cinema' && <FeedbackCinemaLab vault={vaultItems} onSave={saveMutation.mutateAsync} project={cinemaProject} setProject={setCinemaProject} script="" setScript={() => {}} title="" setTitle={() => {}} credits="" setCredits={() => {}} logs={[]} setLogs={() => {}} activeBeatIndex={0} setActiveBeatIndex={() => {}} onReset={() => {}} settings={appSettings} />}
+            {activeTab === 'fusion' && <FeedbackFusionLab vault={vaultItems} onResult={() => {}} settings={appSettings} />}
+            {activeTab === 'manual' && <ManualNode onSave={saveMutation.mutateAsync} settings={appSettings} />}
+            {activeTab === 'lumina' && <LuminaStudio settings={appSettings} />}
+            {activeTab === 'docs' && <DocsLab />}
+            {activeTab === 'settings' && <SettingsLab settings={appSettings} setSettings={setAppSettings} />}
+        </Suspense>
       </main>
     </div>
   );

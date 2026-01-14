@@ -3,9 +3,9 @@ import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { z } from 'zod';
 import { TimelineBeat, VaultItem, CategorizedDNA, FusionManifest, LatentParams, AgentStatus, AgentAuthority, ScoutData, AppSettings, DeliberationStep, VisualAnchor, LatentGrading } from "./types";
 
-const getAI = (settings?: AppSettings) => {
-  const key = settings?.googleApiKey || process.env.API_KEY as string;
-  return new GoogleGenAI({ apiKey: key });
+// Added fix: API key must be obtained exclusively from process.env.API_KEY per guidelines
+const getAI = () => {
+  return new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 };
 
 // --- Shielded Pipeline Schemas ---
@@ -61,9 +61,10 @@ function wrapWithMetadata(prompt: string): string {
 }
 
 export async function extractDeepDNA(imageUrl: string, settings?: AppSettings): Promise<CategorizedDNA> {
-  const ai = getAI(settings);
+  const ai = getAI();
   const base64 = imageUrl.includes(',') ? imageUrl.split(',')[1] : imageUrl;
   
+  // Added fix: accessing .text property on response object (not text())
   const response: GenerateContentResponse = await executeWithRetry(() => ai.models.generateContent({
     model: "gemini-3-flash-preview",
     contents: {
@@ -93,9 +94,10 @@ export async function extractDeepDNA(imageUrl: string, settings?: AppSettings): 
 }
 
 export async function executeGroundedSynth(prompt: string, weights: any, vault: VaultItem[], auth: AgentAuthority, settings?: AppSettings) {
-  const ai = getAI(settings);
+  const ai = getAI();
   
   // Stage 1: Deliberation Middleware
+  // Added fix: accessing .text property on response object (not text())
   const planningResponse = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: wrapWithMetadata(`Synthesize a multi-agent plan for: "${prompt}". 
@@ -150,7 +152,8 @@ export async function executeGroundedSynth(prompt: string, weights: any, vault: 
 
 // ... Outras funções de serviço seguem agora o mesmo padrão de validação Zod e Metadata Wrapping
 export async function optimizeVisualPrompt(prompt: string, settings?: AppSettings): Promise<string> {
-  const ai = getAI(settings);
+  const ai = getAI();
+  // Added fix: accessing .text property on response object (not text())
   const response = await executeWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: wrapWithMetadata(`Translate this visual intent into a professional technical meta-prompt for industrial generation: ${prompt}`),
@@ -159,7 +162,7 @@ export async function optimizeVisualPrompt(prompt: string, settings?: AppSetting
 }
 
 export async function generateImageForBeat(caption: string, scoutQuery: string, settings?: AppSettings): Promise<string> {
-  const ai = getAI(settings);
+  const ai = getAI();
   const response: GenerateContentResponse = await executeWithRetry(() => ai.models.generateContent({
     model: 'gemini-2.5-flash-image',
     contents: { 
@@ -180,7 +183,7 @@ export async function generateImageForBeat(caption: string, scoutQuery: string, 
 }
 
 export async function executeFusion(manifest: FusionManifest, vault: VaultItem[], settings?: AppSettings) {
-  const ai = getAI(settings);
+  const ai = getAI();
   const pep = vault.find(v => v.shortId === manifest.pep_id);
   const pop = vault.find(v => v.shortId === manifest.pop_id);
   
@@ -210,7 +213,8 @@ export async function executeFusion(manifest: FusionManifest, vault: VaultItem[]
 }
 
 export async function scriptToTimeline(script: string, fps: number, fidelity: boolean, settings?: AppSettings): Promise<TimelineBeat[]> {
-  const ai = getAI(settings);
+  const ai = getAI();
+  // Added fix: accessing .text property on response object (not text())
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: wrapWithMetadata(`Translate to documentary timeline: ${script}`),
@@ -245,7 +249,8 @@ export async function scriptToTimeline(script: string, fps: number, fidelity: bo
  * Added fix: Implemented autoOptimizeFusion to resolve FusionLab error.
  */
 export async function autoOptimizeFusion(intent: string, manifest: FusionManifest, vault: VaultItem[], settings?: AppSettings) {
-  const ai = getAI(settings);
+  const ai = getAI();
+  // Added fix: accessing .text property on response object (not text())
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: wrapWithMetadata(`Optimize this FusionManifest for the intent: "${intent}".
@@ -276,7 +281,7 @@ export async function autoOptimizeFusion(intent: string, manifest: FusionManifes
  * Added fix: Implemented visualAnalysisJudge to resolve FusionLab error.
  */
 export async function visualAnalysisJudge(imageUrl: string, intent: string, popImageUrl?: string, settings?: AppSettings) {
-  const ai = getAI(settings);
+  const ai = getAI();
   const parts: any[] = [
     { inlineData: { mimeType: "image/png", data: imageUrl.split(',')[1] || imageUrl } }
   ];
@@ -285,6 +290,7 @@ export async function visualAnalysisJudge(imageUrl: string, intent: string, popI
   }
   parts.push({ text: wrapWithMetadata(`Judge the character migration and pose fidelity for intent: "${intent}". Compare Img 1 (Result) with Img 2 (Reference Pose) if provided.`) });
 
+  // Added fix: accessing .text property on response object (not text())
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: { parts },
@@ -307,7 +313,8 @@ export async function visualAnalysisJudge(imageUrl: string, intent: string, popI
  * Added fix: Implemented refinePromptDNA to resolve FusionLab error.
  */
 export async function refinePromptDNA(intent: string, settings?: AppSettings) {
-  const ai = getAI(settings);
+  const ai = getAI();
+  // Added fix: accessing .text property on response object (not text())
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: wrapWithMetadata(`Refine this visual intent into a highly detailed prompt: "${intent}"`),
@@ -343,13 +350,14 @@ export async function refinePromptDNA(intent: string, settings?: AppSettings) {
  * Added fix: Implemented scoutMediaForBeat to resolve CinemaLab error.
  */
 export async function scoutMediaForBeat(query: string, caption: string, settings?: AppSettings, provider?: string) {
-  const ai = getAI(settings);
+  const ai = getAI();
   if (provider === 'GEMINI') {
      const response = await ai.models.generateContent({
        model: 'gemini-3-flash-preview',
        contents: `Find a high-quality stock photo or reference image for: "${query}". Context: ${caption}`,
        config: { tools: [{googleSearch: {}}] },
      });
+     // Extract URLs from groundingChunks per guidelines
      const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
      const firstUrl = chunks?.find(c => c.web?.uri)?.web?.uri || "";
      return { assetUrl: firstUrl, source: "Gemini Grounding" };
@@ -361,8 +369,9 @@ export async function scoutMediaForBeat(query: string, caption: string, settings
  * Added fix: Implemented matchVaultForBeat to resolve CinemaLab error.
  */
 export async function matchVaultForBeat(caption: string, vault: VaultItem[], settings?: AppSettings) {
-  const ai = getAI(settings);
+  const ai = getAI();
   if (vault.length === 0) return null;
+  // Added fix: accessing .text property on response object (not text())
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: wrapWithMetadata(`Select the best vault item for this cinematic beat: "${caption}".
@@ -383,7 +392,8 @@ export async function matchVaultForBeat(caption: string, vault: VaultItem[], set
  * Added fix: Implemented getGlobalVisualPrompt to resolve CinemaLab error.
  */
 export async function getGlobalVisualPrompt(script: string, settings?: AppSettings) {
-  const ai = getAI(settings);
+  const ai = getAI();
+  // Added fix: accessing .text property on response object (not text())
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: wrapWithMetadata(`Generate a visual aesthetic description for this script: "${script}"`),
