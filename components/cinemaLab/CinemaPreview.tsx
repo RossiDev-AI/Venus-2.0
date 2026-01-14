@@ -45,7 +45,7 @@ const CinemaPreview: React.FC<CinemaPreviewProps> = ({
       });
 
       if (!isMounted) {
-          app.destroy(true, { children: true, texture: true, baseTexture: true });
+          app.destroy(true, { children: true, texture: true });
           return;
       }
 
@@ -76,7 +76,7 @@ const CinemaPreview: React.FC<CinemaPreviewProps> = ({
     return () => { 
         isMounted = false; 
         if (pixiAppRef.current) {
-            pixiAppRef.current.destroy(true, { children: true, texture: true, baseTexture: true });
+            pixiAppRef.current.destroy(true, { children: true, texture: true });
         }
     };
   }, [aspectRatio]);
@@ -84,7 +84,8 @@ const CinemaPreview: React.FC<CinemaPreviewProps> = ({
   // Audio Reactive Pulse
   useEffect(() => {
     if (mainSpriteRef.current) {
-      const baseScale = mainSpriteRef.current.userData?.baseScale || 1;
+      const sprite = mainSpriteRef.current as any;
+      const baseScale = sprite.userData?.baseScale || 1;
       const pulse = 1 + (audioLevel / 500); // Sensibilidade
       mainSpriteRef.current.scale.set(baseScale * pulse);
     }
@@ -97,7 +98,7 @@ const CinemaPreview: React.FC<CinemaPreviewProps> = ({
         
         if (mainSpriteRef.current) {
             app.stage.removeChild(mainSpriteRef.current);
-            mainSpriteRef.current.destroy({ texture: true, baseTexture: true });
+            mainSpriteRef.current.destroy({ texture: true });
         }
 
         if (currentBeat.assetUrl) {
@@ -110,7 +111,7 @@ const CinemaPreview: React.FC<CinemaPreviewProps> = ({
                 
                 const ratio = Math.max(app.screen.width / tex.width, app.screen.height / tex.height);
                 sprite.scale.set(ratio);
-                sprite.userData = { baseScale: ratio }; // Armazena escala base para pulsação
+                (sprite as any).userData = { baseScale: ratio }; // Armazena escala base para pulsação
                 
                 sprite.y += (currentBeat.yOffset || 0) * (app.screen.height / 100);
 

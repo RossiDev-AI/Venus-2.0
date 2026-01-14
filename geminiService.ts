@@ -208,7 +208,16 @@ export async function executeFusion(manifest: FusionManifest, vault: VaultItem[]
   return {
     imageUrl,
     logs: [{ type: 'Neural Alchemist', status: 'completed', message: 'Identity Migration Stabilized.', timestamp: Date.now(), department: 'Advanced' }],
-    params: { z_anatomy: 1.2, z_structure: 1, z_lighting: 0.8, z_texture: 1, hz_range: "Fusion", neural_metrics: { loss_mse: 0.05, ssim_index: 0.9, tensor_vram: 8, iteration_count: 50, consensus_score: 0.99 } }
+    params: { 
+        z_anatomy: 1.2, 
+        z_structure: 1, 
+        z_lighting: 0.8, 
+        z_texture: 1, 
+        hz_range: "Fusion", 
+        structural_fidelity: 1.0,
+        scale_factor: 1.0,
+        neural_metrics: { loss_mse: 0.05, ssim_index: 0.9, tensor_vram: 8, iteration_count: 50, consensus_score: 0.99 } 
+    }
   };
 }
 

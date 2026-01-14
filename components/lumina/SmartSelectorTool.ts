@@ -1,4 +1,5 @@
-import { StateNode, TLShapeId } from 'tldraw';
+
+import { StateNode, TLShape } from 'tldraw';
 
 export class SmartSelectorTool extends StateNode {
   static id = 'smart-selector';
@@ -24,7 +25,7 @@ export class SmartSelectorTool extends StateNode {
     }
   }
 
-  async processSelection(shapeId: TLShapeId) {
+  async processSelection(shapeId: TLShape['id']) {
     const editor = (this as any).editor;
     const shape = editor.getShape(shapeId)!;
     const bounds = editor.getShapePageBounds(shapeId)!;

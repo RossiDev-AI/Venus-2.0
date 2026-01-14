@@ -13,10 +13,11 @@ interface GradingPreviewProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
   onUploadClick?: () => void;
   onOpenVault?: () => void;
+  scopesDisabled?: boolean; // Added
 }
 
 const GradingPreview: React.FC<GradingPreviewProps> = ({
-  selectedNode, grading, sliderPosition, onSliderMove, containerRef, onUploadClick, onOpenVault
+  selectedNode, grading, sliderPosition, onSliderMove, containerRef, onUploadClick, onOpenVault, scopesDisabled
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [scopesVisible, setScopesVisible] = useState(false);
@@ -61,7 +62,7 @@ const GradingPreview: React.FC<GradingPreviewProps> = ({
     <div className="flex-1 min-h-[60vh] md:min-h-[75vh] bg-[#030303] flex flex-col items-center justify-center relative p-6 md:p-12 border-b border-white/5 overflow-hidden">
       
       {/* 1. Novo Componente de Scopes (Overlay Aditivo) */}
-      <VisualScopes canvasRef={canvasRef} isVisible={scopesVisible} />
+      <VisualScopes canvasRef={canvasRef} isVisible={scopesVisible} scopesDisabled={scopesDisabled} />
       
       {/* 2. Botão de Toggle de Scopes (UI Integrity) */}
       <button 

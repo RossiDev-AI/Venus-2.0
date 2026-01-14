@@ -1,3 +1,4 @@
+
 import * as PIXI from 'pixi.js';
 
 export class LuminaFilters {
@@ -42,7 +43,7 @@ export class LuminaFilters {
   private static applyLUT(filter: PIXI.ColorMatrixFilter, preset: string) {
     switch (preset) {
       case 'KODAK_VISION':
-        filter.night(false); // Aproximação de azulado/quente
+        filter.night(0.5, false); // Aproximação de azulado/quente
         filter.contrast(1.1, true);
         break;
       case 'BLEACH_BYPASS':

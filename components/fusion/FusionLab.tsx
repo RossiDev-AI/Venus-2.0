@@ -44,7 +44,7 @@ const FusionLab: React.FC<FusionLabProps> = ({ vault, onResult, settings }) => {
     
     try {
       const result = await executeFusion(manifest, vault, settings);
-      setAlchemistLogs(prev => [...prev, ...result.logs]);
+      setAlchemistLogs(prev => [...prev, ...result.logs] as AgentStatus[]);
 
       if (autoRefine && result.imageUrl) {
         const popItem = vault.find(v => v.shortId === manifest.pop_id);
@@ -56,7 +56,7 @@ const FusionLab: React.FC<FusionLabProps> = ({ vault, onResult, settings }) => {
           message: `Consensus Score: ${Math.round(judgeResult.score * 100)}%. ${judgeResult.critique}`, 
           timestamp: Date.now(), 
           department: 'Advanced' 
-        }]);
+        }] as AgentStatus[]);
 
         if (judgeResult.score < 0.7) {
           const refinedManifest = { ...manifest, fusionIntent: `${manifest.fusionIntent}. Ensure full character migration: ${judgeResult.suggestion}` };
@@ -73,7 +73,7 @@ const FusionLab: React.FC<FusionLabProps> = ({ vault, onResult, settings }) => {
       }
 
     } catch (e) {
-      setAlchemistLogs(prev => [...prev, { type: 'Neural Alchemist', status: 'error', message: 'Critical Reactor Melt.', timestamp: Date.now(), department: 'Advanced' }]);
+      setAlchemistLogs(prev => [...prev, { type: 'Neural Alchemist', status: 'error', message: 'Critical Reactor Melt.', timestamp: Date.now(), department: 'Advanced' }] as AgentStatus[]);
     } finally {
       setIsProcessing(false);
     }

@@ -1,5 +1,5 @@
 
-import { TLBaseShape, TLStoreSnapshot } from 'tldraw';
+import { TLBaseBoxShape, TLEditorSnapshot } from 'tldraw';
 
 export type AgentType = 
   | 'Director' | 'Meta-Prompt Translator' | 'Consensus Judge' | 'Scriptwriter' | 'Visual Scout'
@@ -78,7 +78,7 @@ export interface LuminaImageProps {
   audioPulsingStrength?: number;
 }
 
-export interface LuminaImageShape extends TLBaseShape<'lumina-image', LuminaImageProps> {}
+export interface LuminaImageShape extends TLBaseBoxShape<'lumina-image', LuminaImageProps> {}
 
 export interface AppSettings {
   // Added fix: Removed googleApiKey to follow Google GenAI guidelines (must use process.env.API_KEY exclusively)
@@ -92,7 +92,7 @@ export interface AppSettings {
 export interface StudioSession {
   id: string;
   name: string;
-  snapshot: TLStoreSnapshot;
+  snapshot: TLEditorSnapshot;
   timestamp: number;
   thumbnail?: string;
 }

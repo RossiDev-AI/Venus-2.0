@@ -14,10 +14,13 @@ interface GradingControlsProps {
   newLutName: string;
   setNewLutName: (val: string) => void;
   selectedNode?: VaultItem | null;
+  controls?: any[]; // Added
+  onSliderStart?: () => void; // Added
+  onSliderEnd?: () => void; // Added
 }
 
 const GradingControls: React.FC<GradingControlsProps> = ({
-  activeCategory, grading, updateParam, applyPreset, filmStocks, customLuts, handleSaveLut, handleRemoveLut, newLutName, setNewLutName, selectedNode
+  activeCategory, grading, updateParam, applyPreset, filmStocks, customLuts, handleSaveLut, handleRemoveLut, newLutName, setNewLutName, selectedNode, controls, onSliderStart, onSliderEnd
 }) => {
   const renderSlider = (key: keyof LatentGrading | string, label: string, min: number, max: number, step: number = 0.01) => (
     <div key={key} className="space-y-3 group/item">
@@ -37,6 +40,10 @@ const GradingControls: React.FC<GradingControlsProps> = ({
           <input 
             type="range" min={min} max={max} step={step} value={(grading as any)[key] || 0} 
             onChange={(e) => updateParam(key as keyof LatentGrading, parseFloat(e.target.value))} 
+            onTouchStart={onSliderStart}
+            onTouchEnd={onSliderEnd}
+            onMouseDown={onSliderStart}
+            onMouseUp={onSliderEnd}
             className="w-full h-full bg-transparent appearance-none accent-white cursor-pointer relative z-20" 
           />
       </div>

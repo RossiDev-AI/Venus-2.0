@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, Suspense, lazy } from 'react';
 import { TimelineBeat, CinemaProject, AgentStatus, VaultItem, AppSettings } from '../../types';
 import { useDeviceType } from '../../hooks/useDeviceType';
@@ -11,6 +12,7 @@ const CinemaControlsDesktop = lazy(() => import('../cinemaLab/CinemaControls'));
 
 interface CinemaLabProps {
   vault: VaultItem[];
+  onSave: (item: VaultItem) => Promise<void>;
   project: CinemaProject;
   setProject: React.Dispatch<React.SetStateAction<CinemaProject>>;
   script: string;

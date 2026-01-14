@@ -1,3 +1,4 @@
+
 import React, { useLayoutEffect, useRef, useEffect } from 'react';
 import { ShapeUtil, HTMLContainer, Rectangle2d } from 'tldraw';
 import * as PIXI from 'pixi.js';
@@ -28,7 +29,7 @@ const LuminaImageComponent = ({ shape }: { shape: LuminaImageShape }) => {
       });
 
       if (!isMounted) {
-        app.destroy(true, { children: true, texture: true, baseTexture: true });
+        app.destroy(true, { children: true, texture: true });
         return;
       }
 
@@ -55,7 +56,7 @@ const LuminaImageComponent = ({ shape }: { shape: LuminaImageShape }) => {
     init();
     return () => {
       isMounted = false;
-      if (pixiAppRef.current) pixiAppRef.current.destroy(true, { children: true, texture: true, baseTexture: true });
+      if (pixiAppRef.current) pixiAppRef.current.destroy(true, { children: true, texture: true });
     };
   }, [(shape as any).props.url, (shape as any).props.w, (shape as any).props.h, isLite]);
 
@@ -74,16 +75,17 @@ const LuminaImageComponent = ({ shape }: { shape: LuminaImageShape }) => {
   ]);
 
   return (
-    <HTMLContainer 
-      ref={containerRef} 
-      className="venus-lumina-image-container"
-      style={{ width: (shape as any).props.w, height: (shape as any).props.h, overflow: 'hidden', position: 'relative', pointerEvents: 'none' }}
-    >
-      {(shape as any).props.isScanning && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-10">
-          <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
-        </div>
-      )}
+    <HTMLContainer className="venus-lumina-image-container" style={{ width: '100%', height: '100%', pointerEvents: 'none' }}>
+      <div 
+        ref={containerRef} 
+        style={{ width: (shape as any).props.w, height: (shape as any).props.h, overflow: 'hidden', position: 'relative' }}
+      >
+        {(shape as any).props.isScanning && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-10">
+            <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+          </div>
+        )}
+      </div>
     </HTMLContainer>
   );
 };

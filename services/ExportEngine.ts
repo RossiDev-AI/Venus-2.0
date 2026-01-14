@@ -1,18 +1,20 @@
 
-import { Editor, TLShapeId } from 'tldraw';
+import { Editor, TLShape } from 'tldraw';
 
 /**
  * V-nus 2.0 Export Engine
  * Combina o kernel de renderização PixiJS com o SVG do Tldraw.
  */
-export async function exportNeuralComposite(editor: Editor, shapeId: TLShapeId, prompt: string): Promise<void> {
+export async function exportNeuralComposite(editor: Editor, shapeId: TLShape['id'], prompt: string): Promise<void> {
   const bounds = editor.getShapePageBounds(shapeId)!;
   
   // 1. Captura o SVG das anotações (Tldraw)
   const drawings = editor.getCurrentPageShapes().filter(s => 
-    s.type === 'draw' && editor.getShapePageBounds(s.id)?.overlaps(bounds)
+    s.type === 'draw' && editor.getShapePageBounds(s.id)?.collides(bounds)
   );
-  const svg = await editor.getSvg(drawings.map(d => d.id), { bounds, padding: 0 });
+  
+  // Cast editor to any to access getSvg as it might vary between versions or not be strictly typed in definition
+  const svg = await (editor as any).getSvg(drawings.map(d => d.id), { bounds, padding: 0 });
 
   // 2. Captura o Frame processado pelo PixiJS
   // Acessamos o canvas via o ShapeUtil que está montado

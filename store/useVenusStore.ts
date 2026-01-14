@@ -1,7 +1,8 @@
+
 import { create } from 'zustand';
 import { subscribeWithSelector, persist, createJSONStorage } from 'zustand/middleware';
 import { temporal } from 'zundo';
-import { TLShapeId, TLStoreSnapshot } from 'tldraw';
+import { TLShape, TLEditorSnapshot } from 'tldraw';
 import { LuminaPreset } from '../types';
 import { DeviceProfile } from '../services/DeviceProfiler';
 
@@ -16,9 +17,9 @@ interface VenusState {
   deviceProfile: null | DeviceProfile;
   isPaused: boolean;
   vaultSyncStatus: 'idle' | 'syncing' | 'error';
-  lastStableSnapshot: TLStoreSnapshot | null;
+  lastStableSnapshot: TLEditorSnapshot | null;
   activePreset: LuminaPreset | null;
-  selectedShapeId: TLShapeId | null;
+  selectedShapeId: TLShape['id'] | null;
   isSynthesizing: boolean;
   jobQueue: IAJob[];
   sceneTextContext: string[];
@@ -27,9 +28,9 @@ interface VenusState {
   setDeviceProfile: (profile: DeviceProfile) => void;
   setPaused: (val: boolean) => void;
   setVaultSyncStatus: (status: 'idle' | 'syncing' | 'error') => void;
-  setLastStableSnapshot: (snapshot: TLStoreSnapshot) => void;
+  setLastStableSnapshot: (snapshot: TLEditorSnapshot) => void;
   setActivePreset: (preset: LuminaPreset | null) => void;
-  setSelectedShapeId: (id: TLShapeId | null) => void;
+  setSelectedShapeId: (id: TLShape['id'] | null) => void;
   setSynthesizing: (val: boolean) => void;
   addJob: (job: IAJob) => void;
   updateJob: (id: string, updates: Partial<IAJob>) => void;
