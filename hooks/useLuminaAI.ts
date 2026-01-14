@@ -13,8 +13,20 @@ export function useLuminaAI() {
 
   useEffect(() => {
     if (!globalWorker) {
-        globalWorker = new Worker(new URL('../ia.worker.ts', import.meta.url), { type: 'module' });
-        globalApi = Comlink.wrap<ILuminaWorker>(globalWorker);
+        try {
+            // Robust origin-based URL construction for the worker.
+            // Using window.location.href as a more resilient base if origin is null in sandboxed environments.
+            const base = window.location.origin && window.location.origin !== 'null' 
+                ? window.location.origin 
+                : window.location.href;
+            
+            const workerUrl = new URL('/ia.worker.ts', base).href;
+            
+            globalWorker = new Worker(workerUrl, { type: 'module' });
+            globalApi = Comlink.wrap<ILuminaWorker>(globalWorker);
+        } catch (e) {
+            console.error("Lumina AI: Critical failure initializing worker", e);
+        }
     }
   }, []);
 

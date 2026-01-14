@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { AgentStatus, LatentParams, VaultItem, VaultDomain, LatentGrading, VisualAnchor, DeliberationStep, AgentAuthority, PoseData, AppSettings } from '../../types';
 import { extractDeepDNA, executeGroundedSynth } from '../../geminiService';
@@ -77,6 +76,53 @@ const Workspace: React.FC<WorkspaceProps> = ({
     return () => clearInterval(interval);
   }, [isProcessing, isBiopsyActive]);
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        const result = ev.target?.result as string;
+        
+        // 1. Atualiza visual imediato
+        setCurrentImage(result);
+        setOriginalSource(result);
+        
+        // 2. Inicia Biópsia Neural para extrair DNA do arquivo injetado
+        setIsBiopsyActive(true);
+        setLogs(prev => [...prev, { 
+            type: 'Attribute Mapper', 
+            status: 'processing', 
+            message: 'Iniciando Biópsia Neural no DNA injetado...', 
+            timestamp: Date.now(), 
+            department: 'Advanced' 
+        }]);
+
+        try {
+          const dna = await extractDeepDNA(result, settings);
+          setParams(prev => ({ ...prev, dna }));
+          setLogs(prev => [...prev, { 
+            type: 'Attribute Mapper', 
+            status: 'completed', 
+            message: `DNA Biopsy Successful: ${dna.character || dna.environment}`, 
+            timestamp: Date.now(), 
+            department: 'Advanced' 
+          }]);
+        } catch (err) {
+          console.error("Biopsy failed", err);
+          setLogs(prev => [...prev, { 
+            type: 'Attribute Mapper', 
+            status: 'error', 
+            message: 'Falha crítica na extração de DNA.', 
+            timestamp: Date.now() 
+          }]);
+        } finally {
+          setIsBiopsyActive(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleProcess = async () => {
     if (!prompt.trim()) return;
     setIsProcessing(true);
@@ -128,6 +174,11 @@ const Workspace: React.FC<WorkspaceProps> = ({
     } catch (e: any) { console.error(e); } finally { setIsSaving(false); }
   };
 
+  const handleSlotClick = (domain: VaultDomain) => {
+    // Abre modal ou lógica de seleção de slot se necessário
+    console.log("Slot clicked:", domain);
+  };
+
   return (
     <div className="h-full flex flex-col bg-[#0c0c0e] relative overflow-hidden min-h-full">
       <div className="hidden md:block">
@@ -139,12 +190,12 @@ const Workspace: React.FC<WorkspaceProps> = ({
           currentImage={currentImage} 
           isProcessing={isProcessing} 
           isBiopsyActive={isBiopsyActive} 
-          loadingMessage={loadingMessages[loadingStep]} 
+          loadingMessage={isBiopsyActive ? "Executando Biópsia Neural..." : loadingMessages[loadingStep]} 
           localGrading={localGrading} 
           params={params} 
           vault={vault} 
           onUploadClick={() => fileInputRef.current?.click()} 
-          onSlotClick={() => {}} 
+          onSlotClick={handleSlotClick} 
         />
         
         <div className="w-full md:w-[380px] lg:w-[440px] flex flex-col bg-[#0e0e11] border-l border-white/5 shadow-2xl relative overflow-hidden">
@@ -192,7 +243,14 @@ const Workspace: React.FC<WorkspaceProps> = ({
         </div>
       </div>
 
-      <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={() => {}} />
+      <input 
+        ref={fileInputRef} 
+        type="file" 
+        className="hidden" 
+        accept="image/*" 
+        onChange={handleFileUpload} 
+      />
+      
       <ZModeModal isOpen={isZModeOpen} onClose={() => setIsZModeOpen(false)} params={params} setParams={setParams} onAutoTune={() => {}} />
       {localGrading && <LGNEditor isOpen={isLGNOpen} onClose={() => setIsLGNOpen(false)} grading={localGrading} onChange={setLocalGrading} />}
     </div>
