@@ -1,3 +1,4 @@
+
 import { TLBaseShape, TLStoreSnapshot } from 'tldraw';
 
 export type AgentType = 
@@ -43,8 +44,22 @@ export interface LuminaImageProps {
   url: string;
   thumbUrl?: string; 
   maskUrl?: string;
+  depthMapUrl?: string;
   isProcessingMask?: boolean;
   isScanning?: boolean;
+  isGeneratingDepth?: boolean;
+  
+  // Spatial & Depth 2.0
+  depthThreshold: number;
+  parallaxIntensity: number;
+  showDepthPreview: boolean;
+  isForegroundOverlay: boolean;
+  depthDisplacement: number; // Força da distorção óptica Z
+  
+  // Content Awareness
+  smartCropEnabled: boolean;
+  subjectFocus?: { x: number, y: number, width: number, height: number }; // Retornado pelo SmartCrop
+  
   // Grading 2.0
   exposure: number;
   brightness: number;
@@ -54,9 +69,9 @@ export interface LuminaImageProps {
   blur: number;
   lutPreset?: string;
   vaultId?: string;
-  // Inpainting Meta
-  guidanceIntensity?: number;
-  activePresetId?: string;
+  
+  // Scopes Signal Data
+  histogramData?: number[];
 }
 
 export interface LuminaImageShape extends TLBaseShape<'lumina-image', LuminaImageProps> {}
@@ -307,31 +322,12 @@ export interface LatentGrading {
   geometry_y?: number;
 }
 
-export interface VisualAnchor {
-  id: string;
-  type: string;
-  coordinates: { x: number; y: number };
-}
-
-export interface DeliberationStep {
-  from: string;
-  to: string;
-  action: string;
-  impact: string;
-  timestamp: number;
-}
-
 export interface FusionManifest {
   pep_id: string;
   pop_id: string;
   pov_id: string;
   amb_id: string;
-  weights: {
-    pep: number;
-    pop: number;
-    pov: number;
-    amb: number;
-  };
+  weights: { pep: number; pop: number; pov: number; amb: number };
   style_modifiers: string[];
   surgicalSwap: boolean;
   fusionIntent: string;
@@ -342,35 +338,34 @@ export interface ScoutCandidate {
   id: string;
   title: string;
   source_layer: string;
-  quality_metrics: {
-    technical: number;
-    aesthetic: number;
-  };
+  quality_metrics: { technical: number; aesthetic: number };
   composite_score: number;
-  votes: {
-    agent: string;
-    score: number;
-    critique: string;
-  }[];
+  votes: Array<{ agent: string; score: number; critique: string }>;
   dna_preview: Partial<LatentParams>;
 }
 
 export interface ScoutData {
   candidates: ScoutCandidate[];
-  consensus_report: string;
-  search_stats: {
-    premium_hits: number;
-    internal_hits: number;
-  };
+  search_stats: { premium_hits: number; internal_hits: number };
   winner_id: string;
+  consensus_report: string;
 }
 
-export interface DNAToken {
+export interface DeliberationStep {
+  from: string;
+  to: string;
+  action: string;
+  impact: string;
+  timestamp: number;
+}
+
+export interface VisualAnchor {
   id: string;
-  token: string;
+  type: string;
+  position: { x: number; y: number };
   metadata: any;
 }
 
 export interface PoseSkeleton {
-  points: { x: number; y: number; label: string }[];
+  keypoints: Array<{ name: string; position: [number, number]; confidence: number }>;
 }
