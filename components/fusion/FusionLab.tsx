@@ -56,7 +56,7 @@ const FusionLab: React.FC<FusionLabProps> = ({ vault, onResult, settings }) => {
           message: `Consensus Score: ${Math.round(judgeResult.score * 100)}%. ${judgeResult.critique}`, 
           timestamp: Date.now(), 
           department: 'Advanced' 
-        }] as AgentStatus[]);
+        } as AgentStatus]);
 
         if (judgeResult.score < 0.7) {
           const refinedManifest = { ...manifest, fusionIntent: `${manifest.fusionIntent}. Ensure full character migration: ${judgeResult.suggestion}` };
@@ -73,7 +73,7 @@ const FusionLab: React.FC<FusionLabProps> = ({ vault, onResult, settings }) => {
       }
 
     } catch (e) {
-      setAlchemistLogs(prev => [...prev, { type: 'Neural Alchemist', status: 'error', message: 'Critical Reactor Melt.', timestamp: Date.now(), department: 'Advanced' }] as AgentStatus[]);
+      setAlchemistLogs(prev => [...prev, { type: 'Neural Alchemist', status: 'error', message: 'Critical Reactor Melt.', timestamp: Date.now(), department: 'Advanced' } as AgentStatus]);
     } finally {
       setIsProcessing(false);
     }

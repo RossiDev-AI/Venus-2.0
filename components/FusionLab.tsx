@@ -46,10 +46,10 @@ const FusionLab: React.FC<FusionLabProps> = ({ vault, onResult, settings }) => {
     try {
       const result = await executeFusion(manifest, vault, settings);
       setFusionResultUrl(result.imageUrl);
-      setAlchemistLogs(prev => [...prev, ...result.logs]);
+      setAlchemistLogs(prev => [...prev, ...result.logs] as AgentStatus[]);
 
       if (autoRefine && result.imageUrl) {
-        setAlchemistLogs(prev => [...prev, { type: 'Visual Quality Judge', status: 'processing', message: 'Analyzing Character Migration Integrity...', timestamp: Date.now(), department: 'Advanced' }]);
+        setAlchemistLogs(prev => [...prev, { type: 'Visual Quality Judge', status: 'processing', message: 'Analyzing Character Migration Integrity...', timestamp: Date.now(), department: 'Advanced' } as AgentStatus]);
         const popItem = vault.find(v => v.shortId === manifest.pop_id);
         const judgeResult = await visualAnalysisJudge(result.imageUrl, manifest.fusionIntent, popItem?.imageUrl, settings);
         
@@ -59,15 +59,15 @@ const FusionLab: React.FC<FusionLabProps> = ({ vault, onResult, settings }) => {
           message: `Consensus Score: ${Math.round(judgeResult.score * 100)}%. ${judgeResult.critique}`, 
           timestamp: Date.now(), 
           department: 'Advanced' 
-        }]);
+        } as AgentStatus]);
 
         if (judgeResult.score < 0.7) {
-          setAlchemistLogs(prev => [...prev, { type: 'Latent Optimizer', status: 'processing', message: `Refining character consistency: ${judgeResult.suggestion}`, timestamp: Date.now(), department: 'Advanced' }]);
+          setAlchemistLogs(prev => [...prev, { type: 'Latent Optimizer', status: 'processing', message: `Refining character consistency: ${judgeResult.suggestion}`, timestamp: Date.now(), department: 'Advanced' } as AgentStatus]);
           const refinedManifest = { ...manifest, fusionIntent: `${manifest.fusionIntent}. Ensure full character migration: ${judgeResult.suggestion}` };
           const refinedResult = await executeFusion(refinedManifest, vault, settings);
           if (refinedResult.imageUrl) {
             setFusionResultUrl(refinedResult.imageUrl);
-            setAlchemistLogs(prev => [...prev, { type: 'Director', status: 'completed', message: 'Identity Migration stabilized.', timestamp: Date.now(), department: 'Direction' }]);
+            setAlchemistLogs(prev => [...prev, { type: 'Director', status: 'completed', message: 'Identity Migration stabilized.', timestamp: Date.now(), department: 'Direction' } as AgentStatus]);
             onResult(refinedResult.imageUrl, refinedResult.params, alchemistLogs);
             return;
           }
@@ -80,7 +80,7 @@ const FusionLab: React.FC<FusionLabProps> = ({ vault, onResult, settings }) => {
 
     } catch (e) {
       console.error(e);
-      setAlchemistLogs(prev => [...prev, { type: 'Neural Alchemist', status: 'error', message: 'Critical Reactor Melt.', timestamp: Date.now(), department: 'Advanced' }]);
+      setAlchemistLogs(prev => [...prev, { type: 'Neural Alchemist', status: 'error', message: 'Critical Reactor Melt.', timestamp: Date.now(), department: 'Advanced' } as AgentStatus]);
     } finally {
       setIsProcessing(false);
     }
@@ -93,7 +93,7 @@ const FusionLab: React.FC<FusionLabProps> = ({ vault, onResult, settings }) => {
     try {
       const result = await refinePromptDNA(manifest.fusionIntent, settings);
       setManifest(prev => ({ ...prev, fusionIntent: result.refined }));
-      setAlchemistLogs(prev => [...prev, ...result.logs]);
+      setAlchemistLogs(prev => [...prev, ...result.logs] as AgentStatus[]);
     } catch (e) { console.error(e); } finally { setIsOptimizing(false); }
   };
 

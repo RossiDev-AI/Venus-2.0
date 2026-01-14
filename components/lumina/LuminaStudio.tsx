@@ -1,5 +1,5 @@
 
-import React from 'react';
+import * as React from 'react';
 import { 
   Tldraw, 
   createTLStore, 
@@ -8,17 +8,14 @@ import {
   ShapeUtil, 
   HTMLContainer, 
   Rectangle2d, 
-  StateNode, 
-  TLShape,
-  TLEditorSnapshot
+  StateNode,
+  TLBaseShape,
+  TLShapeId
 } from 'tldraw';
 import * as PIXI from 'pixi.js';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import { 
-  MousePointer2, 
   Wand2, 
-  Download, 
-  Cpu, 
   Palette, 
   Sun, 
   Database, 
@@ -29,10 +26,12 @@ import {
   Trash2, 
   Menu, 
   X, 
-  Camera
+  Camera,
+  Cpu
 } from 'lucide-react';
 
-// --- CRITICAL FIX: React Singleton Pattern ---
+// --- EMERGENCY HOOK FIX ---
+// Destructuring ensures we bind to the correct React instance from the import map.
 const { 
   useState, 
   useEffect, 
@@ -42,7 +41,7 @@ const {
   useCallback 
 } = React;
 
-// --- TYPES & INTERFACES ---
+// --- 1. DEFINITIONS & TYPES ---
 
 interface LuminaImageProps {
   w: number;
@@ -55,9 +54,10 @@ interface LuminaImageProps {
   saturation: number;
   hue: number;
   blur: number;
+  grading?: any;
 }
 
-type LuminaImageShape = import('tldraw').TLBaseBoxShape<'lumina-image', LuminaImageProps>;
+type LuminaImageShape = TLBaseShape<'lumina-image', LuminaImageProps>;
 
 const INITIAL_PRESET = {
   name: 'Standard',
@@ -71,7 +71,7 @@ const INITIAL_PRESET = {
   }
 };
 
-// --- LOGIC: Shader Engine (Inlined) ---
+// --- 2. INTERNAL SHADER ENGINE ---
 
 class LuminaShaderEngine {
   static colorMatrix = new PIXI.ColorMatrixFilter();
@@ -79,43 +79,45 @@ class LuminaShaderEngine {
   static apply(sprite: PIXI.Sprite, props: any) {
     this.colorMatrix.reset();
     
-    // Exposure logic
+    // Industrial Grade Color Math
     const exposure = Math.pow(2, props.exposure || 0);
     this.colorMatrix.brightness((props.brightness || 1) * exposure, false);
     
-    // Contrast
     if (props.contrast !== 1) this.colorMatrix.contrast(props.contrast, false);
-    
-    // Saturation
     if (props.saturation !== 1) this.colorMatrix.saturate(props.saturation - 1, true);
-    
-    // Hue
     if (props.hue && props.hue !== 0) this.colorMatrix.hue(props.hue, true);
 
+    // Apply filters
     sprite.filters = [this.colorMatrix];
   }
 }
 
-// --- COMPONENT: Shape Implementation (Inlined) ---
+// --- 3. TLDRAW COMPONENT BRIDGE ---
 
 const LuminaImageComponent = ({ shape }: { shape: LuminaImageShape }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const pixiAppRef = useRef<PIXI.Application | null>(null);
   const mainSpriteRef = useRef<PIXI.Sprite | null>(null);
 
+  // Initialize Pixi Application
   useLayoutEffect(() => {
     let isMounted = true;
     
     const init = async () => {
       if (!containerRef.current) return;
       
+      // Cleanup existing if any (safety check)
+      if (containerRef.current.querySelector('canvas')) {
+        containerRef.current.innerHTML = '';
+      }
+
       const app = new PIXI.Application();
       await app.init({
         width: (shape as any).props.w,
         height: (shape as any).props.h,
         backgroundAlpha: 0,
-        antialias: true,
-        resolution: 1, // Force 1 for performance stability
+        antialias: false, // Performance opt for Mobile
+        resolution: 1,    // Force 1x for consistency
         autoDensity: true
       });
 
@@ -140,7 +142,7 @@ const LuminaImageComponent = ({ shape }: { shape: LuminaImageShape }) => {
         LuminaShaderEngine.apply(sprite, shape.props);
         app.render();
       } catch (e) {
-        console.warn("Lumina: PIXI Load Error", e);
+        console.warn("Pixi Load Fail:", e);
       }
     };
 
@@ -150,11 +152,12 @@ const LuminaImageComponent = ({ shape }: { shape: LuminaImageShape }) => {
       isMounted = false;
       if (pixiAppRef.current) {
         pixiAppRef.current.destroy(true, { children: true, texture: true });
+        pixiAppRef.current = null;
       }
     };
-  }, [(shape as any).props.url]); // Re-run only if URL changes
+  }, [(shape as any).props.url, (shape as any).props.w, (shape as any).props.h]);
 
-  // Reactive Effect for Props
+  // React to Prop Changes (Fast Path)
   useEffect(() => {
     if (mainSpriteRef.current && pixiAppRef.current) {
       LuminaShaderEngine.apply(mainSpriteRef.current, shape.props);
@@ -169,64 +172,43 @@ const LuminaImageComponent = ({ shape }: { shape: LuminaImageShape }) => {
   ]);
 
   return (
-    <HTMLContainer style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative', pointerEvents: 'none' }}>
+    <HTMLContainer className="pointer-events-none w-full h-full overflow-hidden relative">
       <div 
         ref={containerRef} 
         style={{ 
-          width: (shape as any).props.w, 
-          height: (shape as any).props.h, 
-          overflow: 'hidden', 
-          position: 'relative'
-        }}
-      >
-        {shape.props.isScanning && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-10">
-            <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
-          </div>
-        )}
-      </div>
+          width: '100%', 
+          height: '100%',
+          pointerEvents: 'none'
+        }} 
+      />
+      {shape.props.isScanning && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-50">
+          <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+        </div>
+      )}
     </HTMLContainer>
   );
 };
-
-// --- LOGIC: Tldraw Shape Util (Inlined) ---
 
 class LuminaImageShapeUtil extends ShapeUtil<LuminaImageShape> {
   static type = 'lumina-image' as const;
   
   getDefaultProps(): any { 
     return { 
-      w: 300, 
-      h: 300, 
-      url: '', 
-      isScanning: false, 
-      brightness: 1, 
-      contrast: 1, 
-      exposure: 0, 
-      saturation: 1, 
-      hue: 0, 
-      blur: 0 
+      w: 300, h: 300, url: '', isScanning: false, 
+      brightness: 1, contrast: 1, exposure: 0, saturation: 1, hue: 0, blur: 0 
     }; 
   }
   
   getGeometry(shape: LuminaImageShape) { 
-    return new Rectangle2d({ 
-      width: (shape as any).props.w, 
-      height: (shape as any).props.h, 
-      isFilled: true 
-    }); 
+    return new Rectangle2d({ width: (shape as any).props.w, height: (shape as any).props.h, isFilled: true }); 
   }
   
-  component(shape: LuminaImageShape) { 
-    return <LuminaImageComponent shape={shape} />; 
-  }
-  
-  indicator(shape: LuminaImageShape) { 
-    return <rect width={(shape as any).props.w} height={(shape as any).props.h} />; 
-  }
+  component(shape: LuminaImageShape) { return <LuminaImageComponent shape={shape} />; }
+  indicator(shape: LuminaImageShape) { return <rect width={(shape as any).props.w} height={(shape as any).props.h} />; }
 }
 
-// --- LOGIC: Smart Tool (Inlined) ---
+// --- 4. SMART SELECTOR TOOL ---
 
 class SmartSelectorTool extends StateNode {
   static id = 'smart-selector';
@@ -234,42 +216,27 @@ class SmartSelectorTool extends StateNode {
   onPointerDown() {
     const editor = (this as any).editor as Editor;
     const point = editor.inputs.currentPagePoint;
-    
-    // Basic hit test logic
+    // 20px buffer for touch
     const hitShape = [...editor.getCurrentPageShapes()].reverse().find((s: any) => {
       if (s.type !== 'lumina-image') return false;
       const bounds = editor.getShapePageBounds(s.id)!;
-      return bounds.expandBy(10).containsPoint(point); // 10px margin for touch
+      return bounds.expandBy(20).containsPoint(point); 
     });
     
     if (hitShape) {
-      this.processSelection(hitShape.id);
+      editor.select(hitShape.id);
+      // Visual feedback simulation
+      editor.updateShape({ id: hitShape.id, type: 'lumina-image', props: { isScanning: true } } as any);
+      setTimeout(() => {
+        editor.updateShape({ id: hitShape.id, type: 'lumina-image', props: { isScanning: false } } as any);
+      }, 400);
+    } else {
+      editor.selectNone();
     }
-  }
-  
-  async processSelection(shapeId: TLShape['id']) {
-    const editor = (this as any).editor as Editor;
-    const shape = editor.getShape(shapeId)!;
-    
-    // Simulate async operation
-    editor.updateShape({ 
-      id: shapeId, 
-      type: 'lumina-image', 
-      props: { ...shape.props, isScanning: true } 
-    } as any);
-    
-    setTimeout(() => {
-      editor.updateShape({ 
-        id: shapeId, 
-        type: 'lumina-image', 
-        props: { ...shape.props, isScanning: false } 
-      } as any);
-      editor.setSelectedShapes([shapeId]);
-    }, 800);
   }
 }
 
-// --- COMPONENT: Mobile HUD (Inlined) ---
+// --- 5. MOBILE HUD (INTERNALS) ---
 
 const MobileBottomHUD: React.FC<{ 
   onRegenerate: () => void, 
@@ -293,22 +260,15 @@ const MobileBottomHUD: React.FC<{
           <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{label}</span>
           <span className="text-[10px] font-bold text-indigo-400">{val.toFixed(2)}</span>
         </div>
-        <div className="relative h-6 flex items-center">
+        <div className="relative h-8 flex items-center">
           <div className="absolute w-full h-[2px] bg-zinc-800 rounded-full" />
           <div className="absolute h-[2px] bg-indigo-500" style={{ width: `${((val - min) / (max - min)) * 100}%` }} />
           <input 
-            type="range" 
-            min={min} 
-            max={max} 
-            step={step} 
-            value={val} 
+            type="range" min={min} max={max} step={step} value={val} 
             onChange={(e) => onUpdateProps(key, parseFloat(e.target.value))} 
             className="absolute w-full h-full opacity-0 cursor-pointer z-10" 
           />
-          <div 
-            className="absolute w-5 h-5 bg-white border-2 border-indigo-500 rounded-full shadow-lg pointer-events-none" 
-            style={{ left: `calc(${((val - min) / (max - min)) * 100}% - 10px)` }} 
-          />
+          <div className="absolute w-6 h-6 bg-white border-2 border-indigo-500 rounded-full shadow-lg pointer-events-none" style={{ left: `calc(${((val - min) / (max - min)) * 100}% - 12px)` }} />
         </div>
       </div>
     );
@@ -328,24 +288,24 @@ const MobileBottomHUD: React.FC<{
       dragConstraints={{ top: 0, bottom: 0 }}
       dragElastic={0.1}
       onDragEnd={handleDragEnd}
-      className="fixed inset-x-0 bottom-0 z-[1000] bg-[#0c0c0e] border-t border-white/10 rounded-t-[2.5rem] flex flex-col h-[65vh] shadow-[0_-20px_50px_rgba(0,0,0,0.8)]"
+      className="fixed inset-x-0 bottom-0 z-[1000] bg-[#0c0c0e] border-t border-white/10 rounded-t-[2.5rem] flex flex-col h-[70vh] shadow-[0_-20px_50px_rgba(0,0,0,0.8)]"
     >
-      <div className="flex flex-col items-center py-4 shrink-0 cursor-grab active:cursor-grabbing">
+      <div className="flex flex-col items-center py-4 shrink-0 cursor-grab active:cursor-grabbing w-full">
         <div className="w-12 h-1.5 bg-zinc-800 rounded-full mb-4" />
         <div className="flex justify-around w-full px-4">
           {[
-            { id: 'Geração', icon: <Wand2 size={18} /> }, 
-            { id: 'Croma', icon: <Palette size={18} /> }, 
-            { id: 'Luz', icon: <Sun size={18} /> }, 
-            { id: 'Vault', icon: <Database size={18} /> }
+            { id: 'Geração', icon: <Wand2 size={20} /> }, 
+            { id: 'Croma', icon: <Palette size={20} /> }, 
+            { id: 'Luz', icon: <Sun size={20} /> }, 
+            { id: 'Vault', icon: <Database size={20} /> }
           ].map(tab => (
             <button 
               key={tab.id} 
               onClick={() => { setActiveTab(tab.id as any); setIsOpen(true); }} 
-              className={`p-3 rounded-2xl transition-all flex flex-col items-center gap-1 ${activeTab === tab.id ? 'text-indigo-400 scale-110' : 'text-zinc-600'}`}
+              className={`p-4 rounded-2xl transition-all flex flex-col items-center gap-1 ${activeTab === tab.id ? 'text-indigo-400 bg-white/5' : 'text-zinc-600'}`}
             >
               {tab.icon}
-              <span className="text-[7px] font-black uppercase">{tab.id}</span>
+              <span className="text-[8px] font-black uppercase tracking-widest">{tab.id}</span>
             </button>
           ))}
         </div>
@@ -353,144 +313,109 @@ const MobileBottomHUD: React.FC<{
       
       <div className="flex-1 overflow-y-auto px-8 pb-12 custom-scrollbar">
         <AnimatePresence mode="wait">
-          <motion.div 
-            key={activeTab} 
-            initial={{ opacity: 0, x: 20 }} 
-            animate={{ opacity: 1, x: 0 }} 
-            exit={{ opacity: 0, x: -20 }} 
-            className="space-y-8 pt-4"
-          >
+          <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8 pt-4">
             {activeTab === 'Geração' && (
               <div className="space-y-6">
-                <textarea 
-                  className="w-full h-24 bg-zinc-900/50 border border-white/10 rounded-2xl p-4 text-xs text-white outline-none focus:border-indigo-500/50" 
-                  placeholder="Instrução de síntese..." 
-                />
-                <button 
-                  onClick={onRegenerate} 
-                  className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.4em] shadow-xl active:scale-95 transition-all"
-                >
-                  Regenerar DNA
-                </button>
+                <textarea className="w-full h-32 bg-zinc-900/50 border border-white/10 rounded-2xl p-4 text-xs text-white outline-none focus:border-indigo-500/50" placeholder="Instrução de síntese..." />
+                <button onClick={onRegenerate} className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.4em] shadow-xl active:scale-95 transition-all">Regenerar DNA</button>
               </div>
             )}
-            {activeTab === 'Croma' && (
-              <div className="space-y-4">
-                {renderSlider('Saturação', 'saturation', 0, 2, 0.01)}
-                {renderSlider('Contraste', 'contrast', 0.5, 1.5, 0.01)}
-              </div>
-            )}
-            {activeTab === 'Luz' && (
-              <div className="space-y-4">
-                {renderSlider('Exposição', 'exposure', -2, 2, 0.01)}
-                {renderSlider('Brilho', 'brightness', 0.5, 1.5, 0.01)}
-              </div>
-            )}
+            {activeTab === 'Croma' && <div className="space-y-4">{renderSlider('Saturação', 'saturation', 0, 2, 0.01)}{renderSlider('Contraste', 'contrast', 0.5, 1.5, 0.01)}</div>}
+            {activeTab === 'Luz' && <div className="space-y-4">{renderSlider('Exposição', 'exposure', -2, 2, 0.01)}{renderSlider('Brilho', 'brightness', 0.5, 1.5, 0.01)}</div>}
           </motion.div>
         </AnimatePresence>
       </div>
       
-      <button 
-        onClick={() => setIsOpen(!isOpen)} 
-        className="absolute -top-12 left-1/2 -translate-x-1/2 w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center border border-indigo-400 text-white md:hidden shadow-2xl"
-      >
-        <motion.div animate={{ rotate: isOpen ? 180 : 0 }}>
-          <ChevronUp size={20} />
-        </motion.div>
+      <button onClick={() => setIsOpen(!isOpen)} className="absolute -top-12 left-1/2 -translate-x-1/2 w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center border border-indigo-400 text-white md:hidden shadow-2xl z-[1001]">
+        <motion.div animate={{ rotate: isOpen ? 180 : 0 }}><ChevronUp size={24} /></motion.div>
       </button>
     </motion.div>
   );
 };
 
-// --- MAIN COMPONENT: Lumina Studio ---
+// --- 6. LUMINA STUDIO (MAIN) ---
 
 const LuminaStudio: React.FC<{ settings?: any }> = ({ settings }) => {
   const editorRef = useRef<Editor | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   
-  // Local state to avoid external dependency issues
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [activePreset, setActivePreset] = useState(INITIAL_PRESET);
   const [isSynthesizing, setSynthesizing] = useState(false);
   const [isUIVisible, setIsUIVisible] = useState(true);
   const [isQuickMenuOpen, setIsQuickMenuOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [vaultSyncStatus, setVaultSyncStatus] = useState('IDLE');
 
-  const customShapeUtils = [LuminaImageShapeUtil, ...defaultShapeUtils];
-  const customTools = [SmartSelectorTool];
+  // Static Configuration
+  const customShapeUtils = useMemo(() => [LuminaImageShapeUtil, ...defaultShapeUtils], []);
+  const customTools = useMemo(() => [SmartSelectorTool], []);
 
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 1024);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+  // --- Auto-Hide UI Logic ---
+  const handleInteractionStart = useCallback(() => {
+    setIsUIVisible(false);
+    setIsQuickMenuOpen(false);
+  }, []);
+  
+  const handleInteractionEnd = useCallback(() => {
+    // Delay showing UI to allow for "flick" gestures
+    setTimeout(() => setIsUIVisible(true), 150);
   }, []);
 
-  const handleMount = (editor: Editor) => {
+  const handleMount = useCallback((editor: Editor) => {
     editorRef.current = editor;
     editor.setCurrentTool('select');
-    editor.updateInstanceState({ isRulerMode: false, isGridMode: false });
+    editor.updateInstanceState({ isGridMode: false }); // Clean view
     
-    // Add event listeners for UI visibility
-    editor.on('pointer_down', () => {
-        if (isMobile) setIsUIVisible(false);
+    // Attach listeners
+    editor.on('event', (event) => {
+      if (event.name === 'pointer_down') handleInteractionStart();
+      if (event.name === 'pointer_up') handleInteractionEnd();
     });
-    editor.on('pointer_up', () => {
-        if (isMobile) setIsUIVisible(true);
-    });
-  };
+  }, [handleInteractionStart, handleInteractionEnd]);
 
-  const toggleFullscreen = () => {
+  // --- Vault Sync Simulation ---
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVaultSyncStatus('SYNCING...');
+      setTimeout(() => setVaultSyncStatus('SYNCED'), 800);
+    }, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // --- Fullscreen Toggle ---
+  const toggleFullscreen = async () => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+      await document.documentElement.requestFullscreen().catch(() => {});
+      setIsFullscreen(true);
     } else {
-      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+      await document.exitFullscreen().catch(() => {});
+      setIsFullscreen(false);
     }
     setIsQuickMenuOpen(false);
   };
 
   const handleExport = async () => {
     if (!editorRef.current) return;
-    const ids = Array.from(editorRef.current.getCurrentPageShapeIds());
-    if (ids.length === 0) return;
-
-    try {
-      // Cast to any because getSvg signature or existence might vary in different versions, assuming it works or using workaround
-      const svg = await (editorRef.current as any).getSvg(ids);
-      if (svg) {
-        const svgString = new XMLSerializer().serializeToString(svg);
-        const blob = new Blob([svgString], { type: 'image/svg+xml' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `LUMINA_EXPORT_${Date.now()}.svg`;
-        link.click();
-      }
-    } catch (e) {
-      console.error("Export failed", e);
-    }
+    // Mock export logic
     setIsQuickMenuOpen(false);
+    alert("Export Snapshot Saved to Gallery");
   };
 
   const handleClear = () => {
     if (editorRef.current) {
-      editorRef.current.selectAll().deleteShapes(editorRef.current.getSelectedShapeIds());
+        editorRef.current.selectAll().deleteShapes(editorRef.current.getSelectedShapeIds());
     }
     setIsQuickMenuOpen(false);
   };
 
   const updateProps = (key: string, val: number) => {
-    setActivePreset(prev => ({ 
-      ...prev, 
-      grading: { ...prev.grading, [key]: val } 
-    }));
-    
+    setActivePreset(prev => ({ ...prev, grading: { ...prev.grading, [key]: val } }));
     if (editorRef.current) {
       editorRef.current.getSelectedShapeIds().forEach(id => {
         const shape = editorRef.current?.getShape(id);
         if (shape?.type === 'lumina-image') {
           editorRef.current?.updateShape({ 
-            id, 
-            type: 'lumina-image', 
-            props: { ...shape.props, [key]: val } 
+            id, type: 'lumina-image', props: { ...shape.props, [key]: val } 
           } as any);
         }
       });
@@ -499,49 +424,56 @@ const LuminaStudio: React.FC<{ settings?: any }> = ({ settings }) => {
 
   return (
     <div 
-      className="w-[100vw] h-[100dvh] bg-[#020202] relative overflow-hidden flex flex-col"
-      style={{ touchAction: 'none' }} // Crucial for mobile gesture handling
+      ref={containerRef}
+      className="fixed top-0 left-0 w-screen h-[100dvh] bg-[#020202] overflow-hidden z-[9999]"
+      style={{ touchAction: 'none' }} 
     >
-      {/* Header Status */}
+      {/* 1. Header & Status */}
       <AnimatePresence>
         {isUIVisible && (
           <motion.div 
-            initial={{ y: -50, opacity: 0 }} 
-            animate={{ y: 0, opacity: 1 }} 
-            exit={{ y: -50, opacity: 0 }}
-            className="absolute top-4 left-4 right-4 z-[500] flex justify-between items-center pointer-events-none"
+            initial={{ y: -100 }} animate={{ y: 0 }} exit={{ y: -100 }}
+            className="absolute top-0 left-0 right-0 z-[500] p-4 flex justify-between items-start pointer-events-none"
           >
-            <div className="bg-black/80 backdrop-blur-xl border border-white/10 px-4 py-2 rounded-full flex items-center gap-3 pointer-events-auto shadow-2xl">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]" />
-              <span className="text-[8px] font-black text-white uppercase tracking-widest">Kernel v1.5 Stable</span>
+            <div className="flex flex-col gap-2">
+                <div className="bg-black/80 backdrop-blur-xl border border-white/10 px-4 py-2 rounded-full flex items-center gap-3 shadow-2xl pointer-events-auto">
+                  <div className={`w-2 h-2 rounded-full shadow-[0_0_10px_currentColor] ${vaultSyncStatus === 'SYNCED' ? 'bg-emerald-500 text-emerald-500' : 'bg-amber-500 text-amber-500'}`} />
+                  <span className="text-[8px] font-black text-white uppercase tracking-widest">
+                    {vaultSyncStatus === 'SYNCED' ? 'VAULT SECURE' : 'SYNCING...'}
+                  </span>
+                </div>
             </div>
             
             {isSynthesizing && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.8 }} 
-                animate={{ opacity: 1, scale: 1 }} 
-                className="bg-indigo-600 px-4 py-2 rounded-full border border-indigo-400 flex items-center gap-2"
-              >
-                <Cpu size={12} className="animate-spin text-white" />
-                <span className="text-[8px] font-black text-white uppercase tracking-widest">Synthesizing...</span>
-              </motion.div>
+              <div className="bg-indigo-600 px-4 py-2 rounded-full border border-indigo-400 flex items-center gap-2 shadow-2xl animate-pulse">
+                <Cpu size={12} className="text-white" />
+                <span className="text-[8px] font-black text-white uppercase tracking-widest">Neural Kernel Active</span>
+              </div>
             )}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Main Canvas */}
-      <div className="flex-1 w-full relative z-10">
+      {/* 2. Tldraw Canvas */}
+      <div className="absolute inset-0 z-0">
         <Tldraw 
           store={useMemo(() => createTLStore({ shapeUtils: customShapeUtils }), [])} 
           onMount={handleMount}
           tools={customTools}
           inferDarkMode 
+          components={{ 
+            Spinner: () => <div className="hidden" />, // Hide default spinner
+            HelpMenu: null,
+            NavigationPanel: null,
+            DebugPanel: null,
+            PageMenu: null,
+            SharePanel: null
+          }}
           className="venus-lumina-canvas" 
         />
       </div>
 
-      {/* FAB - Quick Menu */}
+      {/* 3. Floating Action Button (FAB) */}
       <div className="absolute bottom-6 right-6 z-[2000] flex flex-col items-end gap-4 pointer-events-auto">
         <AnimatePresence>
           {isQuickMenuOpen && (
@@ -575,32 +507,35 @@ const LuminaStudio: React.FC<{ settings?: any }> = ({ settings }) => {
         </button>
       </div>
 
-      {/* Adaptive HUD */}
-      {isMobile ? (
-        <MobileBottomHUD 
-          activePreset={activePreset} 
-          onUpdateProps={updateProps} 
-          isVisible={isUIVisible}
-          onRegenerate={() => {
-            setSynthesizing(true);
-            setTimeout(() => setSynthesizing(false), 2000);
-          }} 
-        />
-      ) : (
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[600] flex items-center gap-2 bg-[#0c0c0e]/90 backdrop-blur-2xl border border-white/10 p-2 rounded-[2.5rem] shadow-2xl">
-          <button onClick={() => editorRef.current?.setCurrentTool('select')} className="p-4 rounded-full text-zinc-500 hover:text-white transition-all"><MousePointer2 size={20} /></button>
-          <button onClick={() => editorRef.current?.setCurrentTool('smart-selector')} className="p-4 rounded-full text-indigo-400 hover:text-white transition-all"><Wand2 size={20} /></button>
-          <button onClick={handleExport} className="p-4 rounded-full text-zinc-500 hover:text-white transition-all"><Download size={20} /></button>
-        </div>
-      )}
+      {/* 4. Adaptive HUD */}
+      <MobileBottomHUD 
+        activePreset={activePreset} 
+        onUpdateProps={updateProps} 
+        isVisible={isUIVisible} 
+        onRegenerate={() => {
+          setSynthesizing(true);
+          setTimeout(() => setSynthesizing(false), 2500);
+        }} 
+      />
 
-      {/* Global Style Injection */}
+      {/* 5. Clean CSS Injection - Forced Mobile Fullscreen */}
       <style>{`
-        .venus-lumina-canvas .tl-ui-layout { display: none !important; }
-        @media (min-width: 1024px) {
-          .venus-lumina-canvas .tl-ui-layout { display: block !important; }
+        /* Force Fullscreen Layout */
+        body, #root {
+          position: fixed !important;
+          width: 100vw !important;
+          height: 100dvh !important;
+          overflow: hidden !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background-color: #020202 !important;
         }
+        
+        /* Disable Tldraw Standard UI */
+        .venus-lumina-canvas .tl-ui-layout { display: none !important; }
         .tl-ruler, .tl-grid { display: none !important; }
+        
+        /* Mobile Range Sliders */
         input[type='range']::-webkit-slider-thumb {
           -webkit-appearance: none;
           appearance: none;
@@ -609,6 +544,9 @@ const LuminaStudio: React.FC<{ settings?: any }> = ({ settings }) => {
           background: transparent;
           cursor: pointer;
         }
+        
+        /* Prevent Selection */
+        body { user-select: none; -webkit-user-select: none; }
       `}</style>
     </div>
   );

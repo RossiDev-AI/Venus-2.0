@@ -19,6 +19,8 @@ interface CinemaLabProps {
   setScript: (val: string) => void;
   title: string;
   setTitle: (val: string) => void;
+  credits: string;
+  setCredits: (val: string) => void;
   logs: AgentStatus[];
   setLogs: React.Dispatch<React.SetStateAction<AgentStatus[]>>;
   activeBeatIndex: number;
