@@ -8,8 +8,6 @@ export function useLuminaAI() {
   const pendingPromiseRef = useRef<{ resolve: (val: string) => void; reject: (err: any) => void } | null>(null);
 
   useEffect(() => {
-    // Correct worker initialization using blob for esm compatibility in browsers if direct URL fails
-    // Here we use the standard meta.url approach
     const worker = new Worker(new URL('../ia.worker.ts', import.meta.url), { type: 'module' });
     workerRef.current = worker;
 
@@ -23,12 +21,12 @@ export function useLuminaAI() {
           setIsReady(true);
           setIsModelLoading(false);
           break;
-        case 'segmented':
+        case 'segmented_click':
           pendingPromiseRef.current?.resolve(data);
           pendingPromiseRef.current = null;
           break;
         case 'error':
-          console.error('Lumina Worker Error:', data);
+          console.error('Lumina Brain Failure:', data);
           pendingPromiseRef.current?.reject(data);
           pendingPromiseRef.current = null;
           setIsModelLoading(false);
@@ -45,16 +43,19 @@ export function useLuminaAI() {
     workerRef.current?.postMessage({ type: 'load' });
   }, [isReady, isModelLoading]);
 
-  const segmentImage = useCallback((imageUrl: string): Promise<string> => {
+  const segmentAtPoint = useCallback((imageUrl: string, x: number, y: number): Promise<string> => {
     return new Promise((resolve, reject) => {
       if (!isReady) {
-        reject('Model not ready');
+        reject('Lumina Kernel not initialized');
         return;
       }
       pendingPromiseRef.current = { resolve, reject };
-      workerRef.current?.postMessage({ type: 'segment', data: { imageUrl } });
+      workerRef.current?.postMessage({ 
+        type: 'segment_click', 
+        data: { imageUrl, point: { x, y } } 
+      });
     });
   }, [isReady]);
 
-  return { isReady, isModelLoading, progress, loadModel, segmentImage };
+  return { isReady, isModelLoading, progress, loadModel, segmentAtPoint };
 }
