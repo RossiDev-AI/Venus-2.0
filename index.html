@@ -3,66 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>V-NUS 2.0 | FINAL CORE</title>
-    
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tldraw@2.4.4/dist/tldraw.css">
+    <title>V-NUS 2.0 | ENGINE START</title>
     
     <style>
-        body, html, #root { margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background: #000; }
-        #v-hud { 
-            position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; 
-            background: #000; color: #4f46e5; font-family: 'Courier New', monospace; z-index: 9999;
+        body, html { margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background: #050505; color: #4f46e5; font-family: 'Courier New', monospace; }
+        canvas { display: block; background: #000; cursor: crosshair; }
+        #ui-overlay { position: fixed; top: 20px; left: 20px; z-index: 100; pointer-events: none; }
+        .btn-ia { 
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: #4f46e5; color: white; border: none; padding: 15px 30px;
+            border-radius: 50px; font-weight: bold; cursor: pointer; pointer-events: all;
+            box-shadow: 0 0 20px rgba(79, 70, 229, 0.4);
         }
     </style>
 </head>
 <body>
 
-    <div id="v-hud">INJETANDO CÓDIGO FONTE...</div>
-    <div id="root"></div>
+    <div id="ui-overlay">
+        <h1>V-NUS 2.0</h1>
+        <p id="status">> NÚCLEO ATIVO (MODO NATIVO)</p>
+    </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tldraw@2.4.4/dist/tldraw.js"></script>
+    <canvas id="venus-canvas"></canvas>
+
+    <button class="btn-ia" onclick="alert('IA COMAND: Aguardando sincronização...')">
+        COMANDO LUMINA
+    </button>
 
     <script>
-        function initVenus() {
-            // Verifica os objetos carregados no window
-            const R = window.React;
-            const RD = window.ReactDOM;
-            const T = window.tldraw;
+        const canvas = document.getElementById('venus-canvas');
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
 
-            if (R && RD && T) {
-                console.log("Kernel carregado!");
-                const TldrawComponent = T.Tldraw;
-                
-                function App() {
-                    R.useEffect(() => {
-                        const hud = document.getElementById('v-hud');
-                        if(hud) {
-                            hud.style.opacity = '0';
-                            setTimeout(() => hud.style.display = 'none', 500);
-                        }
-                    }, []);
-
-                    return R.createElement('div', { style: { height: '100vh' } }, 
-                        R.createElement(TldrawComponent, { 
-                            inferDarkMode: true,
-                            persistenceKey: "v-nus-force-v2"
-                        })
-                    );
-                }
-
-                const root = RD.createRoot(document.getElementById('root'));
-                root.render(R.createElement(App));
-            } else {
-                // Se não carregou, tenta novamente
-                console.warn("Tentando reconectar aos pacotes...");
-                setTimeout(initVenus, 1000);
-            }
+        // Ajusta o tamanho do Canvas
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            ctx.strokeStyle = '#4f46e5';
+            ctx.lineWidth = 2;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
         }
 
-        // Tenta iniciar
-        initVenus();
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Lógica de Desenho Simples (Para testar o render)
+        function startDraw(e) {
+            drawing = true;
+            draw(e);
+        }
+
+        function endDraw() {
+            drawing = false;
+            ctx.beginPath();
+        }
+
+        function draw(e) {
+            if (!drawing) return;
+            const x = e.clientX || e.touches[0].clientX;
+            const y = e.clientY || e.touches[0].clientY;
+
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        }
+
+        canvas.addEventListener('mousedown', startDraw);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', endDraw);
+        canvas.addEventListener('touchstart', startDraw);
+        canvas.addEventListener('touchmove', draw);
+        canvas.addEventListener('touchend', endDraw);
+
+        console.log("V-NUS: ENGINE NATIVA INICIALIZADA.");
     </script>
 </body>
 </html>
