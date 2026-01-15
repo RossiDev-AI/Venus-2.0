@@ -5,34 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>V-NUS 2.0 | CORE</title>
     
-    <link rel="stylesheet" href="https://unpkg.com/tldraw@2.4.4/dist/tldraw.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tldraw@2.4.4/dist/tldraw.css">
     
     <style>
-        body, html, #root { 
-            margin: 0; 
-            padding: 0; 
-            width: 100vw; 
-            height: 100vh; 
-            overflow: hidden; 
-            background: #000; 
-            color: #fff;
-            font-family: sans-serif;
-        }
-        #status-overlay {
-            position: fixed;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #000;
-            z-index: 9999;
-            transition: opacity 0.5s;
-        }
+        body, html, #root { margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background: #000; color: #fff; font-family: sans-serif; }
+        #status-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: #000; z-index: 9999; text-align: center; padding: 20px; }
     </style>
 
-    <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/tldraw@2.4.4/dist/tldraw.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tldraw@2.4.4/dist/tldraw.js"></script>
 </head>
 <body>
 
@@ -40,45 +22,45 @@
     <div id="root"></div>
 
     <script>
+        // Função para tentar encontrar o Tldraw no sistema
+        function findTldraw() {
+            if (window.tldraw && window.tldraw.Tldraw) return window.tldraw.Tldraw;
+            if (window.Tldraw) return window.Tldraw;
+            return null;
+        }
+
         window.onload = () => {
             const React = window.React;
             const ReactDOM = window.ReactDOM;
-            
-            // Tenta capturar o Tldraw de todas as formas possíveis que o Global oferece
-            const TldrawComponent = (window.tldraw && window.tldraw.Tldraw) ? window.tldraw.Tldraw : window.Tldraw;
+            const TldrawComponent = findTldraw();
 
             if (!TldrawComponent) {
-                document.getElementById('status-overlay').innerHTML = "<span style='color:red'>ERRO: MOTOR GRÁFICO NÃO CARREGADO</span>";
+                // Se falhar de novo, vamos tentar forçar um recarregamento do script
+                document.getElementById('status-overlay').innerHTML = 
+                    "<div style='color:#ffaa00'>MOTOR GRÁFICO EM AGUARDO...<br><small>O arquivo é grande, aguarde 5 segundos ou atualize (F5).</small></div>";
+                
+                // Tenta novamente em 3 segundos
+                setTimeout(() => { if(findTldraw()) location.reload(); }, 3000);
                 return;
             }
 
             function VenusApp() {
                 React.useEffect(() => {
-                    console.log("V-NUS 2.0: SISTEMA OPERACIONAL ATIVO");
-                    // Pequeno delay para suavizar a entrada
-                    setTimeout(() => {
-                        const overlay = document.getElementById('status-overlay');
-                        if(overlay) overlay.style.opacity = '0';
-                        setTimeout(() => overlay ? overlay.style.display = 'none' : null, 500);
-                    }, 1000);
+                    const overlay = document.getElementById('status-overlay');
+                    if(overlay) overlay.style.display = 'none';
+                    console.log("V-NUS 2.0 ATIVO");
                 }, []);
 
-                return React.createElement('div', { 
-                    style: { position: 'fixed', inset: 0 } 
-                }, 
+                return React.createElement('div', { style: { position: 'fixed', inset: 0 } }, 
                     React.createElement(TldrawComponent, { 
                         inferDarkMode: true,
-                        persistenceKey: "v-nus-v2-final-stable"
+                        persistenceKey: "v-nus-v2-stable-final"
                     })
                 );
             }
 
-            try {
-                const root = ReactDOM.createRoot(document.getElementById('root'));
-                root.render(React.createElement(VenusApp));
-            } catch (e) {
-                document.getElementById('status-overlay').innerText = "FALHA NA RENDERIZAÇÃO: " + e.message;
-            }
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(React.createElement(VenusApp));
         };
     </script>
 </body>
