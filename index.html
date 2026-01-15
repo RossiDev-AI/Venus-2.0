@@ -3,93 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>V-nus 2.0 | Fix Final</title>
+    <title>V-NUS 2.0 | HARD RESET</title>
     
     <link rel="stylesheet" href="https://unpkg.com/tldraw@2.4.4/dist/tldraw.css">
     
     <style>
         body, html, #root { margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background: #000; }
-        #loading-screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; color: white; font-family: sans-serif; background: #000; z-index: 9999; }
+        #status { position: fixed; top: 10px; left: 10px; color: #555; font-family: monospace; z-index: 10000; pointer-events: none; }
     </style>
 
-    <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
-
-    <script src="https://cdn.jsdelivr.net/npm/@tldraw/tldraw@2.0.0-alpha.12/dist/tldraw.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tldraw/tldraw@2.0.0-alpha.12/dist/tldraw.css">
-<script type="importmap">
-{
-  "imports": {
-    "tldraw": "https://esm.sh/tldraw@^4.2.3",
-    "react": "https://esm.sh/react@^19.2.3",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
-    "zod": "https://esm.sh/zod@^4.3.5",
-    "pixi.js": "https://esm.sh/pixi.js@^8.15.0",
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "@uppy/core": "https://esm.sh/@uppy/core@^5.2.0",
-    "@uppy/react": "https://esm.sh/@uppy/react@^5.1.1",
-    "@uppy/image-editor": "https://esm.sh/@uppy/image-editor@^4.1.0",
-    "@uppy/compressor": "https://esm.sh/@uppy/compressor@^3.1.0",
-    "@xenova/transformers": "https://esm.sh/@xenova/transformers@^2.17.2",
-    "comlink": "https://esm.sh/comlink@^4.4.2",
-    "smartcrop": "https://esm.sh/smartcrop@^2.0.5",
-    "face-api.js": "https://esm.sh/face-api.js@^0.22.2",
-    "tesseract.js": "https://esm.sh/tesseract.js@^7.0.0",
-    "dexie": "https://esm.sh/dexie@^4.2.1",
-    "zustand": "https://esm.sh/zustand@^5.0.10",
-    "zustand/": "https://esm.sh/zustand@^5.0.10/",
-    "zundo": "https://esm.sh/zundo@^2.3.0",
-    "@ffmpeg/ffmpeg": "https://esm.sh/@ffmpeg/ffmpeg@^0.12.15",
-    "@ffmpeg/util": "https://esm.sh/@ffmpeg/util@^0.12.2",
-    "node-vibrant": "https://esm.sh/node-vibrant@^4.0.3",
-    "@tanstack/react-query": "https://esm.sh/@tanstack/react-query@^5.90.17",
-    "react-lottie-player": "https://esm.sh/react-lottie-player@^2.1.0",
-    "framer-motion": "https://esm.sh/framer-motion@^12.26.2"
-  }
-}
-</script>
+    <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/tldraw@2.4.4/dist/tldraw.js"></script>
 </head>
 <body>
-    <div id="loading-screen">INICIALIZANDO NÚCLEO V-NUS...</div>
+    <div id="status">Sincronizando Kernel...</div>
     <div id="root"></div>
 
     <script>
-        // O segredo: esperar o navegador processar as globais e dar um respiro (timeout)
-        window.addEventListener('load', function() {
-            setTimeout(function() {
-                try {
-                    const React = window.React;
-                    const ReactDOM = window.ReactDOM;
-                    const Tldraw = window.tldraw.Tldraw;
+        // Forçamos o uso estrito das instâncias que acabamos de carregar
+        const { createElement, useEffect, useState } = window.React;
+        const { createRoot } = window.ReactDOM;
+        const { Tldraw } = window.tldraw;
 
-                    if (!React || !Tldraw) {
-                        throw new Error("Bibliotecas não carregadas corretamente.");
-                    }
+        function VenusApp() {
+            useEffect(() => {
+                document.getElementById('status').innerText = "V-NUS ONLINE";
+                console.log("Sistema iniciado com sucesso.");
+            }, []);
 
-                    function VenusApp() {
-                        // Usamos React.useMemo para estabilizar a renderização do Tldraw
-                        return React.createElement('div', { style: { height: '100vh', width: '100vw' } }, 
-                            React.createElement(Tldraw, { 
-                                inferDarkMode: true,
-                                persistenceKey: "v-nus-final-reboot-v2"
-                            })
-                        );
-                    }
+            return createElement('div', { style: { position: 'fixed', inset: 0 } }, 
+                createElement(Tldraw, { 
+                    inferDarkMode: true,
+                    persistenceKey: "v-nus-v2-hard-reset"
+                })
+            );
+        }
 
-                    const root = ReactDOM.createRoot(document.getElementById('root'));
-                    root.render(React.createElement(VenusApp));
-                    
-                    // Remove a tela de loading após o sucesso
-                    document.getElementById('loading-screen').style.display = 'none';
-                    console.log("V-NUS KERNEL ONLINE");
-
-                } catch (err) {
-                    document.getElementById('loading-screen').innerHTML = "ERRO DE BOOT: " + err.message;
-                    console.error(err);
-                }
-            }, 500); // 500ms de segurança para o DOM respirar
-        });
+        // Inicialização com atraso para garantir que o DOM não está ocupado
+        setTimeout(() => {
+            try {
+                const container = document.getElementById('root');
+                const root = createRoot(container);
+                root.render(createElement(VenusApp));
+            } catch (e) {
+                document.getElementById('status').innerText = "ERRO: " + e.message;
+                document.getElementById('status').style.color = "red";
+            }
+        }, 500);
     </script>
 </body>
 </html>
