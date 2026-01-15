@@ -46,14 +46,14 @@ const CinemaControls: React.FC<CinemaControlsProps> = (props) => {
             <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest px-1">Capa (Título HTML)</label>
             <div 
               contentEditable onBlur={(e) => props.setTitle(e.currentTarget.innerHTML)}
-              dangerouslySetInnerHTML={{ __html: props.title }}
+              dangerouslySetInnerHTML={{ __html: props.title || '' }}
               className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white outline-none min-h-[60px] focus:border-indigo-500/30 overflow-y-auto custom-scrollbar" 
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest px-1">Aspect Ratio</label>
-              <select value={props.aspectRatio} onChange={(e) => props.setAspectRatio(e.target.value)} className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-[10px] font-black text-white outline-none">
+              <select value={props.aspectRatio || '16:9'} onChange={(e) => props.setAspectRatio(e.target.value)} className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-[10px] font-black text-white outline-none">
                 <option value="16:9">Widescreen 16:9</option>
                 <option value="9:16">Portrait 9:16</option>
                 <option value="1:1">Square 1:1</option>
@@ -61,7 +61,7 @@ const CinemaControls: React.FC<CinemaControlsProps> = (props) => {
             </div>
             <div className="space-y-1.5">
               <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest px-1">Export Res</label>
-              <select value={props.exportRes} onChange={(e) => props.setExportRes(e.target.value)} className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-[10px] font-black text-white outline-none">
+              <select value={props.exportRes || '1080p'} onChange={(e) => props.setExportRes(e.target.value)} className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-[10px] font-black text-white outline-none">
                 <option value="1080p">HD 1080p</option>
                 <option value="2K">2K Cinema</option>
                 <option value="4K">UHD 4K</option>
@@ -72,14 +72,14 @@ const CinemaControls: React.FC<CinemaControlsProps> = (props) => {
             <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest px-1">Créditos (HTML)</label>
             <div 
               contentEditable onBlur={(e) => props.setCredits(e.currentTarget.innerHTML)}
-              dangerouslySetInnerHTML={{ __html: props.credits }}
+              dangerouslySetInnerHTML={{ __html: props.credits || '' }}
               className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white outline-none min-h-[80px] focus:border-indigo-500/30 overflow-y-auto custom-scrollbar" 
             />
           </div>
         </div>
         <div className="space-y-4 pt-4 border-t border-white/5">
-          <div className="flex justify-between text-[9px] font-black text-zinc-500 uppercase tracking-widest px-1"><span>Duração Global</span><span className="text-white mono">{props.globalDuration}s</span></div>
-          <input type="range" min="1" max="20" value={props.globalDuration} onChange={(e) => props.setGlobalDuration(parseInt(e.target.value))} className="w-full h-1 bg-zinc-900 rounded-full appearance-none accent-indigo-500" />
+          <div className="flex justify-between text-[9px] font-black text-zinc-500 uppercase tracking-widest px-1"><span>Duração Global</span><span className="text-white mono">{props.globalDuration || 5}s</span></div>
+          <input type="range" min="1" max="20" value={props.globalDuration || 5} onChange={(e) => props.setGlobalDuration(parseInt(e.target.value))} className="w-full h-1 bg-zinc-900 rounded-full appearance-none accent-indigo-500" />
         </div>
       </div>
 
@@ -89,24 +89,24 @@ const CinemaControls: React.FC<CinemaControlsProps> = (props) => {
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest px-1">Font Size</label>
-            <input type="number" value={subs.fontSize} onChange={(e) => props.onUpdateSubtitle('fontSize', parseInt(e.target.value))} className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-[10px] text-white outline-none" />
+            <input type="number" value={subs.fontSize || 24} onChange={(e) => props.onUpdateSubtitle('fontSize', parseInt(e.target.value))} className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-[10px] text-white outline-none" />
           </div>
           <div className="space-y-1.5">
             <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest px-1">Text Color</label>
-            <input type="color" value={subs.fontColor} onChange={(e) => props.onUpdateSubtitle('fontColor', e.target.value)} className="w-full h-8 bg-black/40 border border-white/5 rounded-xl px-1 py-1 cursor-pointer" />
+            <input type="color" value={subs.fontColor || '#ffffff'} onChange={(e) => props.onUpdateSubtitle('fontColor', e.target.value)} className="w-full h-8 bg-black/40 border border-white/5 rounded-xl px-1 py-1 cursor-pointer" />
           </div>
           <div className="space-y-1.5">
             <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest px-1">Box Color</label>
-            <input type="color" value={subs.backgroundColor} onChange={(e) => props.onUpdateSubtitle('backgroundColor', e.target.value)} className="w-full h-8 bg-black/40 border border-white/5 rounded-xl px-1 py-1 cursor-pointer" />
+            <input type="color" value={subs.backgroundColor || '#000000'} onChange={(e) => props.onUpdateSubtitle('backgroundColor', e.target.value)} className="w-full h-8 bg-black/40 border border-white/5 rounded-xl px-1 py-1 cursor-pointer" />
           </div>
           <div className="space-y-1.5">
             <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest px-1">Opacity</label>
-            <input type="number" step="0.1" min="0" max="1" value={subs.bgOpacity} onChange={(e) => props.onUpdateSubtitle('bgOpacity', parseFloat(e.target.value))} className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-[10px] text-white outline-none" />
+            <input type="number" step="0.1" min="0" max="1" value={subs.bgOpacity ?? 0.8} onChange={(e) => props.onUpdateSubtitle('bgOpacity', parseFloat(e.target.value))} className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-[10px] text-white outline-none" />
           </div>
         </div>
         <div className="space-y-1.5">
           <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest px-1">Font Family</label>
-          <select value={subs.fontFamily} onChange={(e) => props.onUpdateSubtitle('fontFamily', e.target.value)} className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-[10px] text-white outline-none">
+          <select value={subs.fontFamily || 'Inter'} onChange={(e) => props.onUpdateSubtitle('fontFamily', e.target.value)} className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-[10px] text-white outline-none">
             <option value="Inter">Inter UI</option>
             <option value="JetBrains Mono">JetBrains Mono</option>
             <option value="serif">Classic Serif</option>
@@ -116,11 +116,11 @@ const CinemaControls: React.FC<CinemaControlsProps> = (props) => {
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest px-1">Radius Mult</label>
-            <input type="number" step="0.1" value={subs.radiusMult} onChange={(e) => props.onUpdateSubtitle('radiusMult', parseFloat(e.target.value))} className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-[10px] text-white outline-none" />
+            <input type="number" step="0.1" value={subs.radiusMult ?? 0.5} onChange={(e) => props.onUpdateSubtitle('radiusMult', parseFloat(e.target.value))} className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-[10px] text-white outline-none" />
           </div>
           <div className="space-y-1.5">
             <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest px-1">Margin Mult</label>
-            <input type="number" step="0.1" value={subs.marginMult} onChange={(e) => props.onUpdateSubtitle('marginMult', parseFloat(e.target.value))} className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-[10px] text-white outline-none" />
+            <input type="number" step="0.1" value={subs.marginMult ?? 1.0} onChange={(e) => props.onUpdateSubtitle('marginMult', parseFloat(e.target.value))} className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-[10px] text-white outline-none" />
           </div>
         </div>
       </div>
@@ -139,10 +139,10 @@ const CinemaControls: React.FC<CinemaControlsProps> = (props) => {
           </div>
           <div 
             contentEditable onBlur={(e) => props.setScript(e.currentTarget.innerHTML)}
-            dangerouslySetInnerHTML={{ __html: props.script }}
+            dangerouslySetInnerHTML={{ __html: props.script || '' }}
             className="w-full h-40 bg-black/50 border border-white/5 rounded-2xl p-5 text-sm text-zinc-300 focus:outline-none resize-none transition-all overflow-y-auto custom-scrollbar" 
           />
-          <button onClick={props.onAnalyze} disabled={props.isGenerating || !props.script.trim()} className="w-full py-6 bg-indigo-600 hover:bg-indigo-500 text-white rounded-[1.8rem] font-black uppercase text-[10px] tracking-[0.5em] transition-all active:scale-95 shadow-xl">Analisar & Orquestrar</button>
+          <button onClick={props.onAnalyze} disabled={props.isGenerating || !props.script?.trim()} className="w-full py-6 bg-indigo-600 hover:bg-indigo-500 text-white rounded-[1.8rem] font-black uppercase text-[10px] tracking-[0.5em] transition-all active:scale-95 shadow-xl">Analisar & Orquestrar</button>
         </div>
         <button onClick={props.onRender} disabled={props.isRendering} className="w-full py-8 bg-emerald-600 hover:bg-emerald-500 text-white text-[12px] font-black uppercase tracking-[0.6em] rounded-[3rem] shadow-xl transition-all relative overflow-hidden group">
           <span className="relative z-10">{props.isRendering ? 'MASTERIZANDO...' : 'MASTERIZAR UHD'}</span>

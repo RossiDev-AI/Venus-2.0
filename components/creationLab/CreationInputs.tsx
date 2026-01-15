@@ -17,7 +17,7 @@ const CreationInputs: React.FC<CreationInputsProps> = ({ prompt, setPrompt, refi
           <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">User Intent</label>
           <button 
             onClick={onMagicWand}
-            disabled={isOptimizing || !prompt.trim()}
+            disabled={isOptimizing || !prompt?.trim()}
             className={`p-2 rounded-xl border border-indigo-500/20 bg-indigo-500/5 text-indigo-400 hover:bg-indigo-500/10 transition-all ${isOptimizing ? 'animate-pulse' : ''}`}
             title="Meta-Prompt Optimize"
           >
@@ -25,7 +25,7 @@ const CreationInputs: React.FC<CreationInputsProps> = ({ prompt, setPrompt, refi
           </button>
         </div>
         <textarea 
-          value={prompt}
+          value={prompt || ''}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder="Specify your visual intent (Portuguese or English)..."
           className="w-full h-32 bg-black/50 border border-white/5 rounded-3xl p-6 text-[13px] text-white focus:outline-none focus:border-indigo-500/30 resize-none transition-all placeholder:text-zinc-800"

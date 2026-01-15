@@ -34,7 +34,7 @@ const SettingsApiKeyItem: React.FC<SettingsApiKeyItemProps> = ({
       <div className="relative">
         <input 
           type="password"
-          value={value}
+          value={value || ''}
           onChange={(e) => onUpdate(apiKey, e.target.value)}
           placeholder={placeholder}
           className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-xs text-indigo-400 focus:outline-none focus:border-indigo-500/30 transition-all font-mono placeholder:text-zinc-800"
