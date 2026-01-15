@@ -3,67 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>V-NUS 2.0 | CORE</title>
+    <title>V-NUS 2.0 | NATIVE</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tldraw/tldraw@2.4.4/dist/tldraw.css">
+    
     <style>
-        body, html { margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background: #000; }
-        iframe { border: none; width: 100vw; height: 100vh; background: #000; }
-        #status { 
-            position: fixed; inset: 0; display: flex; align-items: center; 
-            justify-content: center; color: #6366f1; font-family: monospace; 
-            background: #000; z-index: 10; pointer-events: none;
-            text-transform: uppercase; letter-spacing: 2px;
+        body, html, #root { 
+            margin: 0; padding: 0; width: 100vw; height: 100vh; 
+            overflow: hidden; background: #111; color: #fff;
+            font-family: monospace;
+        }
+        #v-hud {
+            position: fixed; inset: 0; display: flex; align-items: center;
+            justify-content: center; background: #000; z-index: 999;
+            pointer-events: none; transition: opacity 1s;
         }
     </style>
 </head>
 <body>
-    <div id="status">Sincronizando Bunker Venus...</div>
-    
-    <iframe id="venus-frame" srcdoc='
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tldraw@2.4.4/dist/tldraw.css">
-            <style>body, html, #root { margin: 0; height: 100vh; background: #000; overflow: hidden; }</style>
-        </head>
-        <body>
-            <div id="root"></div>
-            <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
-            <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-            <script src="https://cdn.jsdelivr.net/npm/tldraw@2.4.4/dist/tldraw.js"></script>
-            <script>
-                function start() {
-                    try {
-                        const React = window.React;
-                        const ReactDOM = window.ReactDOM;
-                        const Tldraw = window.tldraw.Tldraw || window.Tldraw;
-                        
-                        if (!Tldraw) {
-                            setTimeout(start, 500);
-                            return;
-                        }
 
-                        const root = ReactDOM.createRoot(document.getElementById("root"));
-                        root.render(React.createElement(Tldraw, { 
-                            inferDarkMode: true,
-                            persistenceKey: "v-nus-bunker-v1" 
-                        }));
-                        window.parent.postMessage("online", "*");
-                    } catch(e) { console.error(e); }
-                }
-                window.onload = start;
-            </script>
-        </body>
-        </html>
-    '></iframe>
+    <div id="v-hud">INICIALIZANDO NÚCLEO NATIVO...</div>
+    <div id="root"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tldraw/tldraw@2.4.4/dist/tldraw.js"></script>
 
     <script>
-        window.addEventListener("message", (event) => {
-            if (event.data === "online") {
-                document.getElementById("status").style.opacity = "0";
-                setTimeout(() => document.getElementById("status").style.display = "none", 500);
-                console.log("V-NUS KERNEL: OPERACIONAL");
+        // Função de Boot Forçado
+        function bootstrap() {
+            try {
+                const React = window.React;
+                const ReactDOM = window.ReactDOM;
+                // O tldraw global pode estar em window.tldraw ou window.tldraw.Tldraw
+                const Tldraw = (window.tldraw && window.tldraw.Tldraw) ? window.tldraw.Tldraw : window.Tldraw;
+
+                if (!Tldraw || !React || !ReactDOM) {
+                    console.log("Aguardando pacotes...");
+                    setTimeout(bootstrap, 500);
+                    return;
+                }
+
+                const App = () => {
+                    React.useEffect(() => {
+                        const hud = document.getElementById('v-hud');
+                        if (hud) hud.style.opacity = '0';
+                        setTimeout(() => hud.style.display = 'none', 1000);
+                    }, []);
+
+                    return React.createElement('div', { style: { height: '100vh' } }, 
+                        React.createElement(Tldraw, { 
+                            inferDarkMode: true,
+                            persistenceKey: "v-nus-v2-native-core"
+                        })
+                    );
+                };
+
+                const root = ReactDOM.createRoot(document.getElementById('root'));
+                root.render(React.createElement(App));
+                
+            } catch (err) {
+                document.getElementById('v-hud').innerHTML = "ERRO CRÍTICO: " + err.message;
             }
-        });
+        }
+
+        // Inicia o processo
+        bootstrap();
     </script>
 </body>
 </html>
