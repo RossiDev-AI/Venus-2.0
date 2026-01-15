@@ -5,63 +5,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>V-NUS 2.0 | CORE</title>
     
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tldraw@2.4.4/dist/tldraw.css">
+    <link rel="stylesheet" href="https://esm.sh/tldraw@2.4.4/tldraw.css">
     
     <style>
-        body, html, #root { margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background: #000; color: #fff; font-family: sans-serif; }
-        #status-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: #000; z-index: 9999; text-align: center; padding: 20px; }
+        body, html, #root { margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background: #000; }
+        #v-loader { 
+            position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; 
+            background: #000; color: #6366f1; font-family: 'Courier New', Courier, monospace; z-index: 999;
+            text-transform: uppercase; letter-spacing: 2px;
+        }
     </style>
-
-    <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tldraw@2.4.4/dist/tldraw.js"></script>
 </head>
 <body>
-
-    <div id="status-overlay">CONECTANDO AO KERNEL V-NUS...</div>
+    <div id="v-loader">Injetando Kernel V-nus...</div>
     <div id="root"></div>
 
-    <script>
-        // Função para tentar encontrar o Tldraw no sistema
-        function findTldraw() {
-            if (window.tldraw && window.tldraw.Tldraw) return window.tldraw.Tldraw;
-            if (window.Tldraw) return window.Tldraw;
-            return null;
+    <script type="module">
+        import React from 'https://esm.sh/react@18.2.0';
+        import ReactDOM from 'https://esm.sh/react-dom@18.2.0/client';
+        import { Tldraw } from 'https://esm.sh/tldraw@2.4.4';
+
+        function VenusApp() {
+            React.useEffect(() => {
+                const loader = document.getElementById('v-loader');
+                if (loader) {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.style.display = 'none', 500);
+                }
+                console.log("V-NUS 2.0 STATUS: OPERATIONAL");
+            }, []);
+
+            return React.createElement('div', { 
+                style: { position: 'fixed', inset: 0 } 
+            }, 
+                React.createElement(Tldraw, { 
+                    inferDarkMode: true,
+                    persistenceKey: "v-nus-v2-final-deploy-alpha"
+                })
+            );
         }
 
-        window.onload = () => {
-            const React = window.React;
-            const ReactDOM = window.ReactDOM;
-            const TldrawComponent = findTldraw();
-
-            if (!TldrawComponent) {
-                // Se falhar de novo, vamos tentar forçar um recarregamento do script
-                document.getElementById('status-overlay').innerHTML = 
-                    "<div style='color:#ffaa00'>MOTOR GRÁFICO EM AGUARDO...<br><small>O arquivo é grande, aguarde 5 segundos ou atualize (F5).</small></div>";
-                
-                // Tenta novamente em 3 segundos
-                setTimeout(() => { if(findTldraw()) location.reload(); }, 3000);
-                return;
-            }
-
-            function VenusApp() {
-                React.useEffect(() => {
-                    const overlay = document.getElementById('status-overlay');
-                    if(overlay) overlay.style.display = 'none';
-                    console.log("V-NUS 2.0 ATIVO");
-                }, []);
-
-                return React.createElement('div', { style: { position: 'fixed', inset: 0 } }, 
-                    React.createElement(TldrawComponent, { 
-                        inferDarkMode: true,
-                        persistenceKey: "v-nus-v2-stable-final"
-                    })
-                );
-            }
-
-            const root = ReactDOM.createRoot(document.getElementById('root'));
-            root.render(React.createElement(VenusApp));
-        };
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(VenusApp));
     </script>
 </body>
 </html>
