@@ -2,51 +2,63 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>V-NUS 2.0 | CORE</title>
     
-    <link rel="stylesheet" href="https://esm.sh/tldraw@2.4.4/tldraw.css">
+    <link rel="stylesheet" href="https://unpkg.com/tldraw@2.4.4/dist/tldraw.css">
     
     <style>
         body, html, #root { margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background: #000; }
-        #v-loader { 
-            position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; 
-            background: #000; color: #6366f1; font-family: 'Courier New', Courier, monospace; z-index: 999;
-            text-transform: uppercase; letter-spacing: 2px;
-        }
+        #v-status { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; color: #4f46e5; font-family: monospace; background: #000; z-index: 9999; }
     </style>
+
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.3.1",
+        "react-dom": "https://esm.sh/react-dom@18.3.1",
+        "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+        "tldraw": "https://esm.sh/tldraw@2.4.4?external=react,react-dom"
+      }
+    }
+    </script>
 </head>
 <body>
-    <div id="v-loader">Injetando Kernel V-nus...</div>
+    <div id="v-status">ESTABILIZANDO NÚCLEO...</div>
     <div id="root"></div>
 
     <script type="module">
-        import React from 'https://esm.sh/react@18.2.0';
-        import ReactDOM from 'https://esm.sh/react-dom@18.2.0/client';
-        import { Tldraw } from 'https://esm.sh/tldraw@2.4.4';
+        import React from 'react';
+        import ReactDOM from 'react-dom/client';
+        import { Tldraw } from 'tldraw';
 
+        // O erro useRef acontece porque o Tldraw monta rápido demais.
+        // Vamos forçar um atraso na renderização do componente.
         function VenusApp() {
+            const [isMounted, setIsMounted] = React.useState(false);
+
             React.useEffect(() => {
-                const loader = document.getElementById('v-loader');
-                if (loader) {
-                    loader.style.opacity = '0';
-                    setTimeout(() => loader.style.display = 'none', 500);
-                }
-                console.log("V-NUS 2.0 STATUS: OPERATIONAL");
+                setIsMounted(true);
+                const status = document.getElementById('v-status');
+                if (status) status.style.display = 'none';
             }, []);
 
-            return React.createElement('div', { 
-                style: { position: 'fixed', inset: 0 } 
-            }, 
+            if (!isMounted) return null;
+
+            return React.createElement('div', { style: { position: 'fixed', inset: 0 } }, 
                 React.createElement(Tldraw, { 
                     inferDarkMode: true,
-                    persistenceKey: "v-nus-v2-final-deploy-alpha"
+                    persistenceKey: "v-nus-stable-v1"
                 })
             );
         }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(React.createElement(VenusApp));
+        try {
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(React.createElement(VenusApp));
+        } catch (e) {
+            console.error("Boot Error:", e);
+        }
     </script>
 </body>
 </html>
