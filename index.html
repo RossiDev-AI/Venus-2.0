@@ -3,44 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>V-NUS 2.0 | CORE BLINDADO</title>
+    <title>V-NUS 2.0 | CORE</title>
     <style>
         body, html { margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background: #000; }
-        iframe { border: none; width: 100vw; height: 100vh; }
+        iframe { border: none; width: 100vw; height: 100vh; background: #000; }
         #status { 
             position: fixed; inset: 0; display: flex; align-items: center; 
-            justify-content: center; color: #4f46e5; font-family: monospace; 
+            justify-content: center; color: #6366f1; font-family: monospace; 
             background: #000; z-index: 10; pointer-events: none;
+            text-transform: uppercase; letter-spacing: 2px;
         }
     </style>
 </head>
 <body>
-    <div id="status">INICIALIZANDO AMBIENTE ISOLADO...</div>
+    <div id="status">Sincronizando Bunker Venus...</div>
     
     <iframe id="venus-frame" srcdoc='
         <!DOCTYPE html>
         <html>
         <head>
-            <link rel="stylesheet" href="https://unpkg.com/tldraw@2.4.4/dist/tldraw.css">
-            <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
-            <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-            <script src="https://unpkg.com/tldraw@2.4.4/dist/tldraw.js"></script>
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tldraw@2.4.4/dist/tldraw.css">
             <style>body, html, #root { margin: 0; height: 100vh; background: #000; overflow: hidden; }</style>
         </head>
         <body>
             <div id="root"></div>
+            <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/tldraw@2.4.4/dist/tldraw.js"></script>
             <script>
-                const React = window.React;
-                const Tldraw = window.tldraw.Tldraw;
-                const root = window.ReactDOM.createRoot(document.getElementById("root"));
-                
-                root.render(React.createElement(Tldraw, { 
-                    inferDarkMode: true,
-                    persistenceKey: "v-nus-v2-isolated" 
-                }));
+                function start() {
+                    try {
+                        const React = window.React;
+                        const ReactDOM = window.ReactDOM;
+                        const Tldraw = window.tldraw.Tldraw || window.Tldraw;
+                        
+                        if (!Tldraw) {
+                            setTimeout(start, 500);
+                            return;
+                        }
 
-                // Avisa o pai que carregou
-                window.parent.postMessage("ready", "*");
+                        const root = ReactDOM.createRoot(document.getElementById("root"));
+                        root.render(React.createElement(Tldraw, { 
+                            inferDarkMode: true,
+                            persistenceKey: "v-nus-bunker-v1" 
+                        }));
+                        window.parent.postMessage("online", "*");
+                    } catch(e) { console.error(e); }
+                }
+                window.onload = start;
             </script>
         </body>
         </html>
@@ -48,9 +58,10 @@
 
     <script>
         window.addEventListener("message", (event) => {
-            if (event.data === "ready") {
-                document.getElementById("status").style.display = "none";
-                console.log("V-NUS KERNEL: AMBIENTE ISOLADO COM SUCESSO.");
+            if (event.data === "online") {
+                document.getElementById("status").style.opacity = "0";
+                setTimeout(() => document.getElementById("status").style.display = "none", 500);
+                console.log("V-NUS KERNEL: OPERACIONAL");
             }
         });
     </script>
